@@ -1,2 +1,8 @@
-data/*
+# Byte-compiled / optimized / DLL files
+__pycache__/
+.cache
+
+# Data
 work/*
+data/*
+

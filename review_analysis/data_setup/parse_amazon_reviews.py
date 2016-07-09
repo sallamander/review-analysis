@@ -83,7 +83,8 @@ if __name__ == '__main__':
 
     reviews = reviews_df['text'].values
     ratios = reviews_df['helpfulness_ratio'].values
-    tokenized_reviews = np.array([word_tokenize(review) for review in reviews])
+    tokenized_reviews = [word_tokenize(review.lower()) for review in reviews]
+    tokenized_reviews = np.array(tokenized_reviews)
 
     nans_mask = np.isnan(reviews_df['helpfulness_ratio'])
     bad_data_mask = reviews_df['helpfulness_ratio'] > 1.0 # Captures only 2 obs. 
