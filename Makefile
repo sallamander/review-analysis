@@ -1,9 +1,9 @@
 work/.folder_structure_sentinel: 
 	mkdir -p data/reviews/amazon
 	mkdir data/word_embeddings
-	mkdir work
+	mkdir -p work/reviews/amazon
 
-	touch work/.folder_structure_sentinel
+	touch $@
 
 folders: work/.folder_structure_sentinel
 
@@ -29,10 +29,14 @@ data/word_embeddings/glove.6B.50d.txt:
 # Amazon food reviews Dataset # 
 ###############################
 
-data/reviews/amazon/finefoods.txt: 
+data/reviews/amazon/food_reviews.txt: 
 	curl http://snap.stanford.edu/data/finefoods.txt.gz  -O
 	gunzip finefoods.txt.gz
-	mv finefoods.txt data/reviews/amazon/food_reviews.txt
+	mv finefoods.txt $@
+
+work/reviews/amazon/food_reviews.csv: data/reviews/amazon/food_reviews.txt
+	python review_analysis/data_setup/parse_amazon_reviews.py $< \
+		work/reviews/amazon/
 
 word_embeddings: data/word_embeddings/glove.6B.50d.txt 
-data: data/reviews/amazon/finefoods.txt
+data: data/reviews/amazon/food_reviews.txt work/reviews/amazon/food_reviews.csv word_embeddings
