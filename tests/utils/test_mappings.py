@@ -1,6 +1,7 @@
 import numpy as np
 from gensim.models.word2vec import Word2Vec
-from review_analysis.utils.mappings import create_mapping_dicts, _filter_corpus
+from review_analysis.utils.mappings import create_mapping_dicts, \
+        _filter_corpus, gen_embedding_weights
 
 class TestMappings: 
 
@@ -49,3 +50,17 @@ class TestMappings:
             assert (len(wrd_embedding.vocab) == filter_size)
             assert (len(self.wrd_embedding.vocab) == filter_size)
 
+    def test_gen_embedding_weights(self):
+        
+        embed_dim = 2
+        wrd_idx_dct = {'UNK':0, 'EOS':1, 'LSTM':2, 'GRU':3}
+
+        wrd_vec_dct = {}
+        for wrd in wrd_idx_dct: 
+            wrd_vec_dct[wrd] = np.zeros(embed_dim)
+
+        embedding_weights = gen_embedding_weights(wrd_idx_dct, wrd_vec_dct, embed_dim)
+        
+        assert (type(embedding_weights) == np.ndarray)
+        assert (embedding_weights.shape[0] == len(wrd_idx_dct))
+        assert (embedding_weights.shape[1] == embed_dim)

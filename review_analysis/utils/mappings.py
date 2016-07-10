@@ -31,19 +31,19 @@ def create_mapping_dicts(wrd_embedding, reviews=None, vocab_size=None):
     gensim_dct.doc2bow(wrd_embedding.vocab.keys(), allow_update=True)
 
     # Leave index 0 for unkown words, 1 for the end of sequence character (EOS) 
-    word_idx_dct = {wrd: (idx + 2) for idx, wrd in gensim_dct.items()}
-    idx_word_dct = {(idx + 2): wrd for idx, wrd in gensim_dct.items()}
-    word_idx_dct['EOS'] = 1
-    idx_word_dct[1] = 'EOS'
-    word_idx_dct['UNK'] = 0
-    idx_word_dct[0] = 'UNK'
+    wrd_idx_dct = {wrd: (idx + 2) for idx, wrd in gensim_dct.items()}
+    idx_wrd_dct = {(idx + 2): wrd for idx, wrd in gensim_dct.items()}
+    wrd_idx_dct['EOS'] = 1
+    idx_wrd_dct[1] = 'EOS'
+    wrd_idx_dct['UNK'] = 0
+    idx_wrd_dct[0] = 'UNK'
 
-    word_vector_dct = {wrd: wrd_embedding[wrd] for idx, wrd in gensim_dct.items()}
+    wrd_vector_dct = {wrd: wrd_embedding[wrd] for idx, wrd in gensim_dct.items()}
     embedding_dim = wrd_embedding.vector_size
-    word_vector_dct['EOS'] = np.zeros((embedding_dim))
-    word_vector_dct['UNK'] = np.zeros((embedding_dim))
+    wrd_vector_dct['EOS'] = np.zeros((embedding_dim))
+    wrd_vector_dct['UNK'] = np.zeros((embedding_dim))
 
-    return word_idx_dct, idx_word_dct, word_vector_dct 
+    return wrd_idx_dct, idx_wrd_dct, wrd_vector_dct 
 
 def _filter_corpus(wrd_embedding, reviews, vocab_size): 
     """Set the `wrd_embeddding.vocab` to a subset of the vocab from `reviews`. 
@@ -73,8 +73,30 @@ def _filter_corpus(wrd_embedding, reviews, vocab_size):
 
     vocab_size = len(master_counter) if not vocab_size else vocab_size
     most_common = master_counter.most_common(vocab_size)
-    new_vocab = [word_count[0] for word_count in most_common]
-    new_vocab_dct = {word: wrd_embedding.vocab[word] for word in new_vocab}
+    new_vocab = [wrd_count[0] for wrd_count in most_common]
+    new_vocab_dct = {wrd: wrd_embedding.vocab[wrd] for wrd in new_vocab}
     wrd_embedding.vocab = new_vocab_dct
 
     return wrd_embedding
+
+def gen_embedding_weights(wrd_idx_dct, wrd_vec_dct, embed_dim):
+    """Generate the initial embedding weights.
+
+    Args: 
+    ----
+        wrd_idx_dct: dict
+        wrd_vec_dct: dict
+        embed_dim: int
+
+    Return: 
+    ------
+        embedding_weights: 2d np.ndarry
+    """
+
+    n_wrds = len(wrd_idx_dct)
+    embedding_weights = np.zeros((n_wrds, embed_dim))
+
+    for wrd, idx in wrd_idx_dct.items():
+        embedding_weights[idx, :] = wrd_vec_dct[wrd]
+
+    return embedding_weights
