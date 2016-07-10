@@ -1,6 +1,7 @@
 """A module for generating word/idx/vector mappings and moving between them. """
 
 import numpy as np
+from collections import Counter
 from gensim.corpora.dictionary import Dictionary
 
 def create_mapping_dicts(wrd_embedding, reviews=None, vocab_size=None):
@@ -24,7 +25,7 @@ def create_mapping_dicts(wrd_embedding, reviews=None, vocab_size=None):
     """
 
     if reviews is not None: 
-        wrd_embedding = _filter_corpus(reviews, wrd_embedding, vocab_size)
+        wrd_embedding = _filter_corpus(wrd_embedding, reviews, vocab_size)
 
     gensim_dct = Dictionary()
     gensim_dct.doc2bow(wrd_embedding.vocab.keys(), allow_update=True)
@@ -44,13 +45,13 @@ def create_mapping_dicts(wrd_embedding, reviews=None, vocab_size=None):
 
     return word_idx_dct, idx_word_dct, word_vector_dct 
 
-def _filter_corpus(reviews, wrd_embedding, vocab_size): 
+def _filter_corpus(wrd_embedding, reviews, vocab_size): 
     """Set the `wrd_embeddding.vocab` to a subset of the vocab from `reviews`. 
 
     Args: 
     ----
-        reviews: list of lists of strings 
         wrd_embedding: gensim.models.word2vec.Word2Vec fitted model
+        reviews: list of lists of strings 
         vocab_size: int or None
             Determines the number of most common words to keep from `reviews`, 
             or all if None.
@@ -62,5 +63,18 @@ def _filter_corpus(reviews, wrd_embedding, vocab_size):
             Original wrd_embedding with `vocab` attribute changed. 
     """
 
-    return wrd_embedding
+    review_wrd_counter = Counter()
+    for review in reviews: 
+        review_wrd_counter += Counter(review)
 
+    embedding_vocab = set(wrd_embedding.vocab.keys())
+    master_counter = Counter({k:v for k, v in review_wrd_counter.items() \
+            if k in embedding_vocab})
+
+    vocab_size = len(master_counter) if not vocab_size else vocab_size
+    most_common = master_counter.most_common(vocab_size)
+    new_vocab = [word_count[0] for word_count in most_common]
+    new_vocab_dct = {word: wrd_embedding.vocab[word] for word in new_vocab}
+    wrd_embedding.vocab = new_vocab_dct
+
+    return wrd_embedding

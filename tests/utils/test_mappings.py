@@ -1,6 +1,6 @@
 import numpy as np
 from gensim.models.word2vec import Word2Vec
-from review_analysis.utils.mappings import create_mapping_dicts
+from review_analysis.utils.mappings import create_mapping_dicts, _filter_corpus
 
 class TestMappings: 
 
@@ -14,7 +14,8 @@ class TestMappings:
         cls.reviews = np.array(reviews)
         cls.ratios = np.array(ratios)
         cls.vocab = set(word for review in reviews for word in review)
-        cls.wrd_embedding = Word2Vec(reviews, min_count=1, size=len(cls.vocab))
+        cls.wrd_embedding = Word2Vec(cls.reviews, min_count=1, 
+                                     size=len(cls.vocab))
 
     def teardown_class(cls): 
         del cls.reviews
@@ -34,5 +35,17 @@ class TestMappings:
         wrd_vec = wrd_vec_dct['This']
         assert (len(wrd_vec_dct) == (len(self.wrd_embedding.vocab) + 2))
         assert (wrd_vec.shape[0] == (self.wrd_embedding.vector_size))
+
+    def test_filter_corpus(self): 
         
-        
+        wrd_embedding = _filter_corpus(self.wrd_embedding, self.reviews,
+                                       vocab_size=None)
+        assert (len(wrd_embedding.vocab) == len(self.vocab))
+
+        # This is descending because the alterations to the embedding are in place. 
+        for filter_size in range(10, 5, -1):
+            wrd_embedding = _filter_corpus(self.wrd_embedding, self.reviews, 
+                                           vocab_size=filter_size)
+            assert (len(wrd_embedding.vocab) == filter_size)
+            assert (len(self.wrd_embedding.vocab) == filter_size)
+

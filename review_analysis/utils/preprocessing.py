@@ -12,5 +12,6 @@ if __name__ == '__main__':
         
     wrd_embedding = return_data("word_embedding", embed_dim=embed_dim)
     reviews, ratios = return_data("reviews")
-    word_idx_dct, idx_word_dct, word_vector_dct = \
-            create_mapping_dicts(wrd_embedding)
+    reviews, ratios = reviews[:10], ratios[:10]
+    wrd_idx_dct, idx_wrd_dct, wrd_vec_dct = \
+            create_mapping_dicts(wrd_embedding, reviews)
