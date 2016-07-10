@@ -22,7 +22,7 @@ def vectorize_txts(txts, wrd_idx_dct):
     
     vec_txts = []
     for review in txts: 
-        vec_words = [wrd_idx_dct.get(word, 0) for word in review]
+        vec_words = [wrd_idx_dct.get(wrd, 0) for wrd in review]
         vec_txts.append(vec_words)
 
     vec_txts = np.array(vec_txts)
@@ -35,20 +35,19 @@ if __name__ == '__main__':
         raise Exception("Usage: {} embed_dim".format(sys.argv[0]))
         
     wrd_embedding = return_data("word_embedding", embed_dim=embed_dim)
-    reviews, ratios = return_data("reviews")
-    reviews, ratios = reviews[:10], ratios[:10]
+    reviews, _ = return_data("reviews")
     wrd_idx_dct, idx_wrd_dct, wrd_vec_dct = \
             create_mapping_dicts(wrd_embedding, reviews)
     embedding_weights = gen_embedding_weights(wrd_idx_dct, wrd_vec_dct,
                                               int(embed_dim))
     vectorized_reviews = vectorize_txts(reviews, wrd_idx_dct)
 
-    word_idx_dct_fp = 'work/word_idx_dct.pkl'
+    wrd_idx_dct_fp = 'work/wrd_idx_dct.pkl'
     embedding_weights_fp = 'work/embedding_weights.npy'
     vectorized_reviews_fp = 'work/vec_reviews.npy'
 
-    with open(word_idx_dct_fp, 'wb+') as f: 
-        pickle.dump(word_idx_dct_fp, f)
+    with open(wrd_idx_dct_fp, 'wb+') as f: 
+        pickle.dump(wrd_idx_dct_fp, f)
 
     np.save(embedding_weights_fp, embedding_weights)
     np.save(vectorized_reviews_fp, vectorized_reviews)

@@ -24,11 +24,11 @@ def return_data(data_type, embed_dim=50):
         return wrd_embedding
     elif data_type == "reviews": 
         reviews_fp = 'work/reviews/amazon/filtered_tokenized_reviews.pkl'
-        ratios_fp = 'work/reviews/amazon/filtered_ratios.txt'
+        ratios_fp = 'work/reviews/amazon/filtered_ratios.npy'
 
         with open(reviews_fp, 'rb') as f: 
             reviews = pickle.load(f)
-        ratios = np.loadtxt(ratios_fp)
+        ratios = np.load(ratios_fp)
         return reviews, ratios 
     else: 
         raise Exception('Invalid data type requested!')

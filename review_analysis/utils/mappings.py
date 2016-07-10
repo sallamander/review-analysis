@@ -1,7 +1,7 @@
-"""A module for generating word/idx/vector mappings and moving between them. """
+"""A module for generating word/idx/vector mappings and moving between them."""
 
 import numpy as np
-from collections import Counter
+from collections import defaultdict, Counter
 from gensim.corpora.dictionary import Dictionary
 
 def create_mapping_dicts(wrd_embedding, reviews=None, vocab_size=None):
@@ -55,7 +55,6 @@ def _filter_corpus(wrd_embedding, reviews, vocab_size):
         vocab_size: int or None
             Determines the number of most common words to keep from `reviews`, 
             or all if None.
-            
 
     Return: 
     ------
@@ -63,17 +62,23 @@ def _filter_corpus(wrd_embedding, reviews, vocab_size):
             Original wrd_embedding with `vocab` attribute changed. 
     """
 
-    review_wrd_counter = Counter()
-    for review in reviews: 
-        review_wrd_counter += Counter(review)
-
     embedding_vocab = set(wrd_embedding.vocab.keys())
-    master_counter = Counter({k:v for k, v in review_wrd_counter.items() \
-            if k in embedding_vocab})
+    if vocab_size: 
+        # Using a defaultdict is much faster than using Counters, and marginally 
+        # faster than using raw dictionaries.
+        review_wrd_counter = defaultdict(int)
+        for review in reviews: 
+            for wrd in review: 
+                review_wrd_counter[wrd] += 1 
 
-    vocab_size = len(master_counter) if not vocab_size else vocab_size
-    most_common = master_counter.most_common(vocab_size)
-    new_vocab = [wrd_count[0] for wrd_count in most_common]
+        master_counter = Counter({k:v for k, v in review_wrd_counter.items() \
+                if k in embedding_vocab})
+        most_common = master_counter.most_common(vocab_size)
+        new_vocab = [wrd_count[0] for wrd_count in most_common]
+    else: 
+        review_vocab = set(wrd for review in reviews for wrd in review)
+        new_vocab = embedding_vocab.intersection(review_vocab)
+
     new_vocab_dct = {wrd: wrd_embedding.vocab[wrd] for wrd in new_vocab}
     wrd_embedding.vocab = new_vocab_dct
 
