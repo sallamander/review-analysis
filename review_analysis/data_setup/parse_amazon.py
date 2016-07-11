@@ -88,8 +88,11 @@ if __name__ == '__main__':
     tokenized_reviews = np.array(tokenized_reviews)
 
     nans_mask = np.isnan(reviews_df['helpfulness_ratio']) # Captures 270052 obs.
-    bad_data_mask = reviews_df['helpfulness_ratio'] > 1.0 # Captures only 2 obs. 
-    final_mask = np.logical_and(~nans_mask, ~bad_data_mask).values
+    bad_data_mask = reviews_df['helpfulness_ratio'] > 1.0 # Captures 2 obs. 
+    num_votes_mask = reviews_df['helpfulness_denominator'] > 5 # Captures 52643 obs.
+    
+    temp_mask = np.logical_and(~nans_mask, ~bad_data_mask)
+    final_mask = np.logical_and(temp_mask, num_votes_mask).values
     
     filtered_reviews_df = reviews_df[final_mask]
     filtered_tokenized_reviews = np.array(tokenized_reviews)[final_mask]
