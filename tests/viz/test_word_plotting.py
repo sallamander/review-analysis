@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from gensim.models.word2vec import Word2Vec
-from review_analysis.viz.word_plotting import filter_corpora
+from review_analysis.viz.word_plotting import filter_corpora, gen_wrd_vec_matrix
 
 class TestWordPlotting: 
 
@@ -27,3 +27,20 @@ class TestWordPlotting:
         assert (len(filtered_corpora) == len(corpora))
         assert (len(filtered_corpora['corpus1']) <= num_top_wrds)
         assert (len(filtered_corpora['corpus2']) <= num_top_wrds)
+
+    def test_gen_wrd_vec_matrix(self):
+        
+        filtered_corpus1 = ['beer', 'for', 'Jesse', 'if', 'he', 'finds', 'this']
+        filtered_corpus2 = ['two', 'for', 'Dan']
+        sentences = [filtered_corpus1, filtered_corpus2]
+        vocab = set(word for sentence in sentences for word in sentence)
+
+        filtered_corpora = {'corpus1' : filtered_corpus1, 
+                            'corpus2' : filtered_corpus2}
+        wrd_embedding = Word2Vec(sentences, min_count=1, size=len(vocab))
+        embed_dim = wrd_embedding.vector_size
+        wrd_matrix_corpora = gen_wrd_vec_matrix(filtered_corpora, wrd_embedding)
+
+        assert (len(wrd_matrix_corpora) == len(filtered_corpora))
+        assert (wrd_matrix_corpora['corpus1'].shape == 
+                (len(filtered_corpus1), embed_dim))
