@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
 from gensim.models.word2vec import Word2Vec
-from review_analysis.viz.word_plotting import filter_corpora, gen_wrd_vec_matrix
+from review_analysis.viz.word_plotting import filter_corpora, \
+        gen_wrd_vec_matrix, gen_tsne_embedding
 
 class TestWordPlotting: 
 
@@ -44,3 +45,15 @@ class TestWordPlotting:
         assert (len(wrd_matrix_corpora) == len(filtered_corpora))
         assert (wrd_matrix_corpora['corpus1'].shape == 
                 (len(filtered_corpus1), embed_dim))
+
+    def test_gen_tsne_embedding(self):
+
+        wrd_embedding_corpus1 = np.zeros((10, 50))
+        wrd_embedding_corpus2 = np.zeros((20, 50))
+        wrd_embedding_corpora = {'corpus1': wrd_embedding_corpus1, 
+                                 'corpus2': wrd_embedding_corpus2}
+        tsne_embedding_corpora = gen_tsne_embedding(wrd_embedding_corpora)
+
+        assert (len(tsne_embedding_corpora) == len(wrd_embedding_corpora))
+        assert (tsne_embedding_corpora['corpus1'].shape == ((10, 2)))
+        assert (tsne_embedding_corpora['corpus2'].shape == ((20, 2)))

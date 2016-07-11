@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
+from tsne import tsne
 from review_analysis.utils.preprocessing import filter_ratios
 from review_analysis.utils.data_io import return_data
 
@@ -59,6 +60,27 @@ def gen_wrd_vec_matrix(filtered_corpora, wrd_embedding):
 
     return wrd_embedding_corpora
 
+def gen_tsne_embedding(wrd_embedding_corpora):
+    """Run TSNE for each inputted corpus. 
+
+    Args:
+    ----
+        wrd_matrix_corpora: dict
+            name (str): word matrix (2d np.ndarray) pairs
+
+    Return:
+    ------
+        tsne_embedding_corpora:dict
+            name (str): tsne embedding (2d np.ndarray) pairs
+    """
+
+    tsne_embedding_corpora = {}
+    for name, wrd_embedding in wrd_embedding_corpora.items():
+        tsne_embedding = tsne(wrd_embedding)
+        tsne_embedding_corpora[name] = tsne_embedding
+
+    return tsne_embedding_corpora
+
 if __name__ == '__main__':
     # Loading the entire df will allow for throwing the raw texts into 
     # sklearns `CountVectorizer`.
@@ -82,3 +104,4 @@ if __name__ == '__main__':
     num_top_wrds = 100 
     filtered_corpora = filter_corpora(corpora, num_top_wrds)
     wrd_embedding_corpora = gen_wrd_vec_matrix(filtered_corpora, wrd_embedding)
+    tsne_embedding_corpora = gen_tsne_embedding(wrd_embedding_corpora)
