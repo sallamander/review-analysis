@@ -3,6 +3,7 @@
 import sys
 import numpy as np
 import pickle
+from keras.preprocessing.sequence import pad_sequences
 from review_analysis.utils.data_io import return_data
 from review_analysis.utils.mappings import create_mapping_dicts, \
         gen_embedding_weights
@@ -52,16 +53,15 @@ def vectorize_txts(txts, wrd_idx_dct):
     vec_txts = np.array(vec_txts)
     return vec_txts
 
-def format_reviews(vectorized_reviews, ratios, maxlen=50): 
-    """Format the reviews to be `maxlen` long, including the EOS character.
+def format_reviews(vectorized_reviews, maxlen=50): 
+    """Format the reviews to be inputted into a recurrent network.
     
-    Take `maxlen` minus 1 words from each review, and then tack on the integer 
-    1, representing the end-of-sequence (EOS) symbol. 
+    Append the integer (1) representing the end-of-sequence (EOS) symbol to each
+    review, and then pad it to be equal in length to `maxlen`.
 
     Args: 
     ----
         vectorized_reviews: 1d np.ndarray of list of ints
-        ratios: 1d np.ndarray of floats 
         maxlen (optional): int
 
     Return: 
@@ -71,18 +71,12 @@ def format_reviews(vectorized_reviews, ratios, maxlen=50):
     """
     
     formatted_reviews = []
-    filtered_ratios = []
-    maxlen -= 1
-    for review, ratio in zip(vectorized_reviews, ratios):
-        if len(review) >= maxlen: 
-            review_subset = review[:maxlen]
-            review_subset.append(1)
-            formatted_reviews.append(review_subset)
-            filtered_ratios.append(ratio)
+    for review in vectorized_reviews:
+        review.append(1)
+        formatted_reviews.append(review)
+    formatted_reviews = pad_sequences(formatted_reviews, maxlen=maxlen)
 
-    formatted_reviews = np.array(formatted_reviews)
-    filtered_ratios = np.array(filtered_ratios)
-    return formatted_reviews, filtered_ratios
+    return formatted_reviews
 
 def filter_ratios(ratios, min=0.0, max=1.00):
     """Return a mask to filter the inputted ratios by the given min/max. 

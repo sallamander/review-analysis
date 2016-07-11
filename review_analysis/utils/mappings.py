@@ -30,13 +30,14 @@ def create_mapping_dicts(wrd_embedding, reviews=None, vocab_size=None):
     gensim_dct = Dictionary()
     gensim_dct.doc2bow(wrd_embedding.vocab.keys(), allow_update=True)
 
-    # Leave index 0 for unkown words, 1 for the end of sequence character (EOS) 
-    wrd_idx_dct = {wrd: (idx + 2) for idx, wrd in gensim_dct.items()}
-    idx_wrd_dct = {(idx + 2): wrd for idx, wrd in gensim_dct.items()}
+    # Leave index 0 for masking the padding, 1 for the end of sequence
+    # character (EOS), and 2 for unkown words (denoted 'UNK')
+    wrd_idx_dct = {wrd: (idx + 3) for idx, wrd in gensim_dct.items()}
+    idx_wrd_dct = {(idx + 3): wrd for idx, wrd in gensim_dct.items()}
     wrd_idx_dct['EOS'] = 1
     idx_wrd_dct[1] = 'EOS'
-    wrd_idx_dct['UNK'] = 0
-    idx_wrd_dct[0] = 'UNK'
+    wrd_idx_dct['UNK'] = 2
+    idx_wrd_dct[2] = 'UNK'
 
     wrd_vector_dct = {wrd: wrd_embedding[wrd] for idx, wrd in gensim_dct.items()}
     embedding_dim = wrd_embedding.vector_size
@@ -97,8 +98,10 @@ def gen_embedding_weights(wrd_idx_dct, wrd_vec_dct, embed_dim):
     ------
         embedding_weights: 2d np.ndarry
     """
-
-    n_wrds = len(wrd_idx_dct)
+    
+    # +1 for the 0's that will mask the padding (`mask_zero` parameter in the
+    # embedding layer of `keras_net.py`)
+    n_wrds = len(wrd_idx_dct) + 1
     embedding_weights = np.zeros((n_wrds, embed_dim))
 
     for wrd, idx in wrd_idx_dct.items():

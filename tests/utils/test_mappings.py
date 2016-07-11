@@ -62,5 +62,7 @@ class TestMappings:
         embedding_weights = gen_embedding_weights(wrd_idx_dct, wrd_vec_dct, embed_dim)
         
         assert (type(embedding_weights) == np.ndarray)
-        assert (embedding_weights.shape[0] == len(wrd_idx_dct))
+        # +1 for the 0's that will mask the padding (`mask_zero` parameter in the
+        # embedding layer of `keras_net.py`)
+        assert (embedding_weights.shape[0] == len(wrd_idx_dct) + 1)
         assert (embedding_weights.shape[1] == embed_dim)

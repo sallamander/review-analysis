@@ -59,7 +59,7 @@ class KerasSeq2NoSeq(object):
             embed_dim = embedding_weights.shape[1] 
             embeddings = Embedding(input_dim=vocab_size, output_dim=embed_dim, 
                                    weights=[embedding_weights], 
-                                   dropout=self.dropout)(reviews)
+                                   dropout=self.dropout, mask_zero=True)(reviews)
             inputs = embeddings
         else: 
             inputs = reviews
@@ -136,8 +136,9 @@ if __name__ == '__main__':
     vectorized_reviews = np.load(vectorized_reviews_fp)
     ratios = np.load(ratios_fp)
 
-    input_length = 50
-    Xs, ys = format_reviews(vectorized_reviews, ratios, maxlen=input_length)
+    input_length = 201 
+    Xs = format_reviews(vectorized_reviews, maxlen=input_length)
+    ys = ratios
     
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
                                                         random_state=609)
@@ -150,5 +151,5 @@ if __name__ == '__main__':
                                  loss='mean_squared_error', 
                                  output_activation='linear', optimizer=optimizer, 
                                  embedding_weights=embedding_weights)
-    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=10, logging=True, 
+    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=15, logging=True, 
                     logging_fp=logging_fp, validation_data=(X_test, y_test))

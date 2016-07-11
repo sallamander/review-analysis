@@ -21,29 +21,14 @@ class TestPreprocessing:
 
         vectorized_reviews = np.array([[0, 0, 2, 3], [2, 3, 2, 0, 0, 0], 
                                        [3, 3, 3, 3, 1]])
-        ratios = np.array([[1.0], [0.75], [0.25]])
 
-        Xs, ys = format_reviews(vectorized_reviews, ratios, 1)
-
-        assert (Xs.shape[0] == len(vectorized_reviews))
-        assert (Xs.shape[1] == 1)
-        assert (ys.shape[0] == len(vectorized_reviews))
-        # Should all be 1's, since `maxlen` is one, meaning the only thing 
-        # outputted is the integer corresponding to end-of-sequence (EOS), 1.
-        assert np.all(Xs == 1)
-
-        Xs, ys = format_reviews(vectorized_reviews, ratios, 3)
+        Xs = format_reviews(vectorized_reviews, 8)
 
         assert (Xs.shape[0] == len(vectorized_reviews))
-        assert (Xs.shape[1] == 3)
-        assert (ys.shape[0] == len(vectorized_reviews))
-
-        Xs, ys = format_reviews(vectorized_reviews, ratios, 6)
-
-        # One review is dropped because it is not minimum 5 characters long.
-        assert (Xs.shape[0] == 2)
-        assert (Xs.shape[1] == 6)
-        assert (ys.shape[0] == 2)
+        assert (Xs.shape[1] == 8)
+        # Should all be 0's, since `maxlen` is longer than each of the sequences, 
+        # meaning they should be padded with a 0 at the end.
+        assert np.all(Xs[:, 0] == 0)
 
     def test_filter_ratios(self):
         
