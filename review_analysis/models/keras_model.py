@@ -13,6 +13,7 @@ from keras.models import Model
 from keras.callbacks import EarlyStopping
 from review_analysis.utils.preprocessing import format_reviews
 from review_analysis.utils.keras_callbacks import LossSaver
+from review_analysis.utils.eval_utils import intellegently_guess
 
 class KerasSeq2NoSeq(object):
     """Recurrent net for regression/classification based on an input sequence.
@@ -141,6 +142,7 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
                                                         random_state=609)
 
+    print('Need to beat... {}'.format(intellegently_guess(y_train)))
     logging_fp = 'work/mean_squared_error/{}/{}_{}_'.format(cell_type, optimizer, 
                                                             encoding_size)
     keras_model = KerasSeq2NoSeq(input_length, cell_type=cell, 
