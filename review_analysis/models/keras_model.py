@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     embedding_weights_fp = 'work/embedding_weights.npy'
     vectorized_reviews_fp = 'work/vec_reviews.npy'
-    ratios_fp = 'work/reviews/amazon/filtered_ratios.npy'
+    ratios_fp = 'work/filtered_ratios.npy'
 
     embedding_weights = np.load(embedding_weights_fp)
     vectorized_reviews = np.load(vectorized_reviews_fp)
@@ -150,5 +150,5 @@ if __name__ == '__main__':
                                  loss='mean_squared_error', 
                                  output_activation='linear', optimizer=optimizer, 
                                  embedding_weights=embedding_weights)
-    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=1, logging=True, 
+    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=10, logging=True, 
                     logging_fp=logging_fp, validation_data=(X_test, y_test))
