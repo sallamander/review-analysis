@@ -28,6 +28,34 @@ def vectorize_txts(txts, wrd_idx_dct):
     vec_txts = np.array(vec_txts)
     return vec_txts
 
+def format_reviews(vectorized_reviews, maxlen=50): 
+    """Format the reviews to be `maxlen` long, including the EOS character.
+    
+    Take `maxlen` minus 1 words from each review, and then tack on the integer 
+    1, representing the end-of-sequence (EOS) symbol. 
+
+    Args: 
+    ----
+        vectorized_reviews: 1d np.ndarray of list of ints
+        maxlen (optional): int
+
+    Return: 
+    ------
+        formatted_reviews: 2d np.ndarray
+            Has shape equal to (`len(vectorized_reviews)`, `maxlen`)
+    """
+    
+    formatted_reviews = []
+    maxlen -= 1
+    for review in vectorized_reviews: 
+        if len(review) >= maxlen: 
+            review_subset = review[:maxlen]
+            review_subset.append(1)
+            formatted_reviews.append(review_subset)
+
+    formatted_reviews = np.array(formatted_reviews)
+    return formatted_reviews
+
 if __name__ == '__main__': 
     try: 
         embed_dim = sys.argv[1]
