@@ -11,7 +11,7 @@ folders: work/.folder_structure_sentinel
 # Wikipedia + Gigaword embedding # 
 ##################################
 
-data/word_embeddings/glove.6B.50d.txt: 
+data/word_embeddings/glove.6B.300d.txt: 
 	curl http://nlp.stanford.edu/data/glove.6B.zip -O
 		
 	unzip glove.6B.zip
@@ -25,7 +25,7 @@ data/word_embeddings/glove.6B.50d.txt:
 	mv *.txt data/word_embeddings
 	rm glove.6B.zip
 
-word_embeddings: data/word_embeddings/glove.6B.50d.txt 
+word_embeddings: data/word_embeddings/glove.6B.300d.txt 
 
 ###############################
 # Amazon food reviews Dataset # 
@@ -51,7 +51,7 @@ ratios: work/reviews/amazon/filtered_ratios.npy
 work/embedding_weights.npy work/vec_reviews.npy: review_analysis/utils/preprocessing.py \
 	work/reviews/amazon/filtered_ratios.npy \
 	work/reviews/amazon/filtered_tokenized_reviews.pkl \
-	data/word_embeddings/glove.6b.300d.txt
+	data/word_embeddings/glove.6B.300d.txt
 	python $< 300
 
 embedding reviews: work/embedding_weights.npy work/vec_reviews.npy
