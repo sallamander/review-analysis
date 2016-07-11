@@ -2,6 +2,8 @@
 
 import pickle
 import numpy as np
+np.random.seed(609)
+from sklearn.cross_validation import train_test_split
 from keras.layers import Input
 from keras.layers.embeddings import Embedding
 from keras.layers.recurrent import GRU, LSTM
@@ -121,17 +123,14 @@ if __name__ == '__main__':
     ratios = np.load(ratios_fp)
 
     input_length = 50
-    Xs = format_reviews(vectorized_reviews, maxlen=input_length)
-    ys = np.array(ratios)
-
-    Xs_test = Xs[64:96]
-    ys_test = ys[64:96]
-    Xs = Xs[:64]
-    ys = ys[:64]
+    Xs, ys = format_reviews(vectorized_reviews, ratios, maxlen=input_length)
     
+    X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
+                                                        random_state=609)
+
     keras_model = KerasSeq2NoSeq(input_length, cell_type=GRU, encoding_size=64, 
                                  loss='mean_squared_error', 
                                  output_activation='linear', optimizer='adagrad', 
                                  embedding_weights=embedding_weights)
-    keras_model.fit(Xs, ys, nb_epoch=100, logging=True, 
-                    validation_data=(Xs_test, ys_test))
+    keras_model.fit(X_train, y_train, nb_epoch=1, logging=True, 
+                    validation_data=(X_test, y_test))

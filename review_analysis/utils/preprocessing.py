@@ -28,7 +28,7 @@ def vectorize_txts(txts, wrd_idx_dct):
     vec_txts = np.array(vec_txts)
     return vec_txts
 
-def format_reviews(vectorized_reviews, maxlen=50): 
+def format_reviews(vectorized_reviews, ratios, maxlen=50): 
     """Format the reviews to be `maxlen` long, including the EOS character.
     
     Take `maxlen` minus 1 words from each review, and then tack on the integer 
@@ -37,6 +37,7 @@ def format_reviews(vectorized_reviews, maxlen=50):
     Args: 
     ----
         vectorized_reviews: 1d np.ndarray of list of ints
+        ratios: 1d np.ndarray of floats 
         maxlen (optional): int
 
     Return: 
@@ -46,15 +47,18 @@ def format_reviews(vectorized_reviews, maxlen=50):
     """
     
     formatted_reviews = []
+    filtered_ratios = []
     maxlen -= 1
-    for review in vectorized_reviews: 
+    for review, ratio in zip(vectorized_reviews, ratios):
         if len(review) >= maxlen: 
             review_subset = review[:maxlen]
             review_subset.append(1)
             formatted_reviews.append(review_subset)
+            filtered_ratios.append(ratio)
 
     formatted_reviews = np.array(formatted_reviews)
-    return formatted_reviews
+    filtered_ratios = np.array(filtered_ratios)
+    return formatted_reviews, filtered_ratios
 
 if __name__ == '__main__': 
     try: 
