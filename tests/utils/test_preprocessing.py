@@ -1,5 +1,6 @@
 import numpy as np
-from review_analysis.utils.preprocessing import vectorize_txts, format_reviews
+from review_analysis.utils.preprocessing import vectorize_txts, format_reviews, \
+    filter_ratios
 
 class TestPreprocessing: 
 
@@ -44,3 +45,26 @@ class TestPreprocessing:
         assert (Xs.shape[1] == 6)
         assert (ys.shape[0] == 2)
 
+    def test_filter_ratios(self):
+        
+        ratios = np.arange(0.0, 1.1, 0.1)
+
+        ratios_mask = filter_ratios(ratios)
+        filtered_ratios = ratios[ratios_mask]
+        assert (filtered_ratios.shape == ratios.shape)
+
+        ratios_mask = filter_ratios(ratios, min=0.5)
+        filtered_ratios = ratios[ratios_mask]
+        assert (filtered_ratios.shape[0] == 6)
+
+        ratios_mask = filter_ratios(ratios, max=0.5)
+        filtered_ratios = ratios[ratios_mask]
+        assert (filtered_ratios.shape[0] == 6)
+
+        ratios_mask = filter_ratios(ratios, min=0.2, max=0.5)
+        filtered_ratios = ratios[ratios_mask]
+        assert (filtered_ratios.shape[0] == 4)
+
+        ratios_mask = filter_ratios(ratios, min=0.5, max=0.5)
+        filtered_ratios = ratios[ratios_mask]
+        assert (filtered_ratios.shape[0] == 1)

@@ -60,6 +60,26 @@ def format_reviews(vectorized_reviews, ratios, maxlen=50):
     filtered_ratios = np.array(filtered_ratios)
     return formatted_reviews, filtered_ratios
 
+def filter_ratios(ratios, min=0.0, max=1.00):
+    """Return a mask to filter the inputted ratios by the given min/max. 
+
+    Args: 
+    ----
+        ratios: 1d np.ndarray of floats
+        min (optional): float
+        max (optional): float
+
+    Return: 
+    -------
+        ratio_mask: 1d np.ndarray of bools
+    """
+
+    lower_bound_mask = ratios >= min
+    upper_bound_mask = ratios <= max
+    ratio_mask = np.logical_and(lower_bound_mask, upper_bound_mask)
+
+    return ratio_mask
+
 if __name__ == '__main__': 
     try: 
         embed_dim = sys.argv[1]
