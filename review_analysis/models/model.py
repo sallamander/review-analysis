@@ -2,6 +2,7 @@
 
 import pickle
 import numpy as np
+import sys
 np.random.seed(609)
 from sklearn.cross_validation import train_test_split
 from keras.layers import Input
@@ -81,7 +82,8 @@ class KerasSeq2NoSeq(object):
         return model
     
     def fit(self, X_train, y_train, batch_size=32, nb_epoch=10, 
-            early_stopping_tol=0, logging=False, validation_data=None):
+            early_stopping_tol=0, logging=False, logging_fp='work/',       
+            validation_data=None):
         """Fit the model. 
 
         Args:
@@ -92,8 +94,9 @@ class KerasSeq2NoSeq(object):
             batch_size (optional): int
             nb_epoch (optional): int
             early_stoppint_tol (optional): int
-            logging: bool
+            logging (optional): bool
                 save batch loss throughout training
+            logging_fp (optional): str
             validation_data (optional): tuple  
         """
         
@@ -104,13 +107,26 @@ class KerasSeq2NoSeq(object):
                                            patience=early_stopping_tol)
             callbacks.append(early_stopping)
         if logging: 
-            logger = LossSaver('work/')
+            logger = LossSaver(logging_fp)
             callbacks.append(logger)
 
         self.model.fit(X_train, y_train, nb_epoch=nb_epoch, batch_size=batch_size,
                        callbacks=callbacks, validation_data=validation_data)
 
 if __name__ == '__main__':
+    if len(sys.argv) < 4: 
+        error_message = "Usage: python model.py cell_type optimizer encoding_size" 
+        raise RuntimeError(error_message)
+    else: 
+        cell_type = sys.argv[1]
+        optimizer = sys.argv[2]
+        encoding_size = int(sys.argv[3])
+
+        if cell_type == 'GRU':
+            cell = GRU
+        else: 
+            cell = LSTM
+
     embedding_weights_fp = 'work/embedding_weights.npy'
     vectorized_reviews_fp = 'work/vec_reviews.npy'
     ratios_fp = 'work/reviews/amazon/filtered_ratios.npy'
@@ -125,9 +141,12 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
                                                         random_state=609)
 
-    keras_model = KerasSeq2NoSeq(input_length, cell_type=GRU, encoding_size=256, 
+    logging_fp = 'work/mean_squared_error/{}/{}_{}_'.format(cell_type, optimizer, 
+                                                            encoding_size)
+    keras_model = KerasSeq2NoSeq(input_length, cell_type=cell, 
+                                 encoding_size=encoding_size, 
                                  loss='mean_squared_error', 
-                                 output_activation='linear', optimizer='adagrad', 
+                                 output_activation='linear', optimizer=optimizer, 
                                  embedding_weights=embedding_weights)
-    keras_model.fit(X_train, y_train, batch_size=256, nb_epoch=20, logging=True, 
-                    validation_data=(X_test, y_test))
+    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=1, logging=True, 
+                    logging_fp=logging_fp, validation_data=(X_test, y_test))

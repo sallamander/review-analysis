@@ -1,5 +1,6 @@
 """A script for Keras callbacks."""
 
+import os
 from keras.callbacks import Callback
 
 class LossSaver(Callback):
@@ -13,9 +14,13 @@ class LossSaver(Callback):
         save_fp: str
     """
 
-    def __init__(self, save_dir):
-        self.train_fp = save_dir + 'train_losses.txt'
-        self.val_fp = save_dir + 'val_losses.txt'
+    def __init__(self, save_fp):
+        self.train_fp = save_fp + 'train_losses.txt'
+        self.val_fp = save_fp + 'val_losses.txt'
+
+        if not os.path.exists(os.path.dirname(self.train_fp)):
+            os.makedirs(os.path.dirname(self.train_fp), exist_ok=True)
+            
         self.train_losses = []
         self.val_losses = []
 
