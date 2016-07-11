@@ -70,7 +70,6 @@ if __name__ == '__main__':
         input_fp = sys.argv[1]
         output_dir = sys.argv[2]
 
-
     food_reviews_fp1 = output_dir + 'raw_food_reviews.csv'
     tokenized_reviews_fp1 = output_dir + 'raw_tokenized_reviews.pkl'
     ratios_fp1 = output_dir + 'raw_ratios.npy'

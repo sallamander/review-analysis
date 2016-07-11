@@ -111,13 +111,10 @@ class KerasSeq2NoSeq(object):
                        callbacks=callbacks, validation_data=validation_data)
 
 if __name__ == '__main__':
-    wrd_idx_dct_fp = 'work/wrd_idx_dct.pkl'
     embedding_weights_fp = 'work/embedding_weights.npy'
     vectorized_reviews_fp = 'work/vec_reviews.npy'
     ratios_fp = 'work/reviews/amazon/filtered_ratios.npy'
 
-    with open(wrd_idx_dct_fp, 'rb') as f: 
-        wrd_idx_dct = pickle.load(f)
     embedding_weights = np.load(embedding_weights_fp)
     vectorized_reviews = np.load(vectorized_reviews_fp)
     ratios = np.load(ratios_fp)
@@ -128,9 +125,9 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
                                                         random_state=609)
 
-    keras_model = KerasSeq2NoSeq(input_length, cell_type=GRU, encoding_size=64, 
+    keras_model = KerasSeq2NoSeq(input_length, cell_type=GRU, encoding_size=256, 
                                  loss='mean_squared_error', 
                                  output_activation='linear', optimizer='adagrad', 
                                  embedding_weights=embedding_weights)
-    keras_model.fit(X_train, y_train, nb_epoch=1, logging=True, 
+    keras_model.fit(X_train, y_train, batch_size=256, nb_epoch=20, logging=True, 
                     validation_data=(X_test, y_test))

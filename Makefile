@@ -25,6 +25,8 @@ data/word_embeddings/glove.6B.50d.txt:
 	mv *.txt data/word_embeddings
 	rm glove.6B.zip
 
+word_embeddings: data/word_embeddings/glove.6B.50d.txt 
+
 ###############################
 # Amazon food reviews Dataset # 
 ###############################
@@ -34,9 +36,28 @@ data/reviews/amazon/food_reviews.txt:
 	gunzip finefoods.txt.gz
 	mv finefoods.txt $@
 
-work/reviews/amazon/food_reviews.csv: data/reviews/amazon/food_reviews.txt
-	python review_analysis/data_setup/parse_amazon_reviews.py $< \
+work/reviews/amazon/raw_food_reviews.csv: data/reviews/amazon/food_reviews.txt
+	python review_analysis/data_setup/parse_amazon.py $< \
 		work/reviews/amazon/
 
-word_embeddings: data/word_embeddings/glove.6B.50d.txt 
-data: data/reviews/amazon/food_reviews.txt work/reviews/amazon/food_reviews.csv word_embeddings
+################
+# Model inputs # 
+################
+
+work/reviews/amazon/filtered_ratios.npy: review_analysis/data_setup/parse_amazon.py
+
+ratios: work/reviews/amazon/filtered_ratios.npy
+
+work/embedding_weights.npy work/vec_reviews.npy: review_analysis/utils/preprocessing.py \
+	work/reviews/amazon/filtered_ratios.npy \
+	work/reviews/amazon/filtered_tokenized_reviews.pkl \
+	data/word_embeddings/glove.6b.300d.txt
+	python $< 300
+
+embedding reviews: work/embedding_weights.npy work/vec_reviews.npy
+
+data: folders data/reviews/amazon/food_reviews.txt \
+	work/reviews/amazon/raw_food_reviews.csv word_embeddings
+inputs: data ratios embedding reviews
+
+all: folders data inputs
