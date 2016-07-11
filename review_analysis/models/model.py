@@ -9,6 +9,7 @@ from keras.layers.core import Dense
 from keras.models import Model
 from keras.callbacks import EarlyStopping
 from review_analysis.utils.preprocessing import format_reviews
+from review_analysis.utils.keras_callbacks import LossSaver
 
 class KerasSeq2NoSeq(object):
     """Recurrent net for regression/classification based on an input sequence.
@@ -78,7 +79,7 @@ class KerasSeq2NoSeq(object):
         return model
     
     def fit(self, X_train, y_train, batch_size=32, nb_epoch=10, 
-            early_stopping_tol=0, validation_data=None):
+            early_stopping_tol=0, logging=False, validation_data=None):
         """Fit the model. 
 
         Args:
@@ -89,15 +90,20 @@ class KerasSeq2NoSeq(object):
             batch_size (optional): int
             nb_epoch (optional): int
             early_stoppint_tol (optional): int
+            logging: bool
+                save batch loss throughout training
             validation_data (optional): tuple  
         """
         
         callbacks=[]
         if early_stopping_tol: 
-            monitor = 'loss'
+            monitor = 'loss' if not validation_data else 'val_loss'
             early_stopping = EarlyStopping(monitor=monitor, 
                                            patience=early_stopping_tol)
             callbacks.append(early_stopping)
+        if logging: 
+            logger = LossSaver('work/')
+            callbacks.append(logger)
 
         self.model.fit(X_train, y_train, nb_epoch=nb_epoch, batch_size=batch_size,
                        callbacks=callbacks, validation_data=validation_data)
@@ -118,6 +124,8 @@ if __name__ == '__main__':
     Xs = format_reviews(vectorized_reviews, maxlen=input_length)
     ys = np.array(ratios)
 
+    Xs_test = Xs[64:96]
+    ys_test = ys[64:96]
     Xs = Xs[:64]
     ys = ys[:64]
     
@@ -125,4 +133,5 @@ if __name__ == '__main__':
                                  loss='mean_squared_error', 
                                  output_activation='linear', optimizer='adagrad', 
                                  embedding_weights=embedding_weights)
-    keras_model.fit(Xs, ys, nb_epoch=100)
+    keras_model.fit(Xs, ys, nb_epoch=100, logging=True, 
+                    validation_data=(Xs_test, ys_test))
