@@ -38,6 +38,7 @@ class KerasSeq2NoSeq(object):
         self.cell_type = cell_type
         self.encoding_size = encoding_size
         self.loss = loss
+        self.metrics = []
         self.optimizer = optimizer
         self.dropout = dropout
         self.embedding_weights = embedding_weights
@@ -64,10 +65,9 @@ class KerasSeq2NoSeq(object):
         layer = self.cell_type(self.encoding_size, dropout_W=self.dropout, 
                                dropout_U=self.dropout)(inputs)
 
-        # If `self.output_activation` is `sigmoid`, treat the problem as 
-        # classification, and otherwise a regression problem. 
         if self.loss == 'binary_crossentropy': 
             layer = Dense(2, activation='softmax')(layer)
+            self.metrics.append('accuracy')
         elif self.loss == 'mean_squared_error': 
             layer = Dense(1, activation='linear')(layer)
         else: 
@@ -75,7 +75,7 @@ class KerasSeq2NoSeq(object):
             raise RuntimeError(msg)
 
         model = Model(input=reviews, output=layer)
-        model.compile(loss=self.loss, optimizer=self.optimizer)
+        model.compile(loss=self.loss, optimizer=self.optimizer, metrics=self.metrics)
 
         return model
     
@@ -98,6 +98,7 @@ class KerasSeq2NoSeq(object):
             validation_data (optional): tuple  
         """
         
+        
         callbacks=[]
         if early_stopping_tol: 
             monitor = 'loss' if not validation_data else 'val_loss'
@@ -105,11 +106,12 @@ class KerasSeq2NoSeq(object):
                                            patience=early_stopping_tol)
             callbacks.append(early_stopping)
         if logging: 
-            logger = LossSaver(logging_fp)
+            logger = LossSaver(logging_fp, self.metrics)
             callbacks.append(logger)
 
         self.model.fit(X_train, y_train, nb_epoch=nb_epoch, batch_size=batch_size,
-                       callbacks=callbacks, validation_data=validation_data)
+                       callbacks=callbacks, validation_data=validation_data, 
+                       shuffle=False)
 
 if __name__ == '__main__':
     if len(sys.argv) < 4: 
@@ -141,7 +143,12 @@ if __name__ == '__main__':
     input_length = 201 
     Xs = format_reviews(vectorized_reviews, maxlen=input_length)
     ys = ratios
-    
+
+    if metric == "binary_crossentropy": 
+        new_ys = np.zeros((len(ys), 2))
+        new_ys[:, 1] = ys > 0.50
+        ys = new_ys
+
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
                                                         random_state=609)
     
