@@ -26,21 +26,18 @@ class KerasSeq2NoSeq(object):
         encoding_size: int
             number of units in the encoding layer
         loss: str
-        output_activation: str
-            expected to be either `sigmoid` or `linear`
         optimizer: str
         dropout (optional): float
         embedding_weights (optional): 2d np.ndarray
     """
 
-    def __init__(self, input_length, cell_type, encoding_size, loss,
-            output_activation, optimizer, dropout=0.0, embedding_weights=None):
+    def __init__(self, input_length, cell_type, encoding_size, loss, optimizer,   
+                 dropout=0.0, embedding_weights=None):
         
         self.input_length = input_length
         self.cell_type = cell_type
         self.encoding_size = encoding_size
         self.loss = loss
-        self.output_activation = output_activation
         self.optimizer = optimizer
         self.dropout = dropout
         self.embedding_weights = embedding_weights
@@ -69,13 +66,13 @@ class KerasSeq2NoSeq(object):
 
         # If `self.output_activation` is `sigmoid`, treat the problem as 
         # classification, and otherwise a regression problem. 
-        if self.output_activation=='sigmoid': 
-            layer = Dense(2, activation=self.output_activation)(layer)
-        elif self.output_activation == 'linear': 
-            layer = Dense(1, activation=self.output_activation)(layer)
+        if self.loss == 'binary_crossentropy': 
+            layer = Dense(2, activation='softmax')(layer)
+        elif self.loss == 'mean_squared_error': 
+            layer = Dense(1, activation='linear')(layer)
         else: 
-            message = 'KerasSeq2NoSeq being used outside of its intended usage'
-            raise RuntimeError(message)
+            msg = 'Expects loss to be `binary_crossentroy` or `mean_squared_error`!'
+            raise RuntimeError(msg)
 
         model = Model(input=reviews, output=layer)
         model.compile(loss=self.loss, optimizer=self.optimizer)
@@ -116,12 +113,17 @@ class KerasSeq2NoSeq(object):
 
 if __name__ == '__main__':
     if len(sys.argv) < 4: 
-        error_message = "Usage: python model.py cell_type optimizer encoding_size" 
-        raise RuntimeError(error_message)
+        msg = "Usage: python model.py metric cell_type optimizer encoding_size dropout_pct"
+        raise RuntimeError(msg)
     else: 
-        cell_type = sys.argv[1]
-        optimizer = sys.argv[2]
-        encoding_size = int(sys.argv[3])
+        metric = sys.argv[1]
+        cell_type = sys.argv[2]
+        optimizer = sys.argv[3]
+        encoding_size = int(sys.argv[4])
+        if len(sys.argv) >= 6: 
+            dropout = float(sys.argv[5])
+        else: 
+            dropout = 0
 
         if cell_type == 'GRU':
             cell = GRU
@@ -144,12 +146,11 @@ if __name__ == '__main__':
                                                         random_state=609)
 
     print('Need to beat... {}'.format(intellegently_guess(y_train)))
-    logging_fp = 'work/mean_squared_error/{}/{}_{}_'.format(cell_type, optimizer, 
-                                                            encoding_size)
+    logging_fp = 'work/{}/{}/{}_{}_{}_'.format(metric, cell_type, optimizer, 
+                                               encoding_size, dropout)
     keras_model = KerasSeq2NoSeq(input_length, cell_type=cell, 
                                  encoding_size=encoding_size, 
-                                 loss='mean_squared_error', 
-                                 output_activation='linear', optimizer=optimizer, 
-                                 embedding_weights=embedding_weights)
-    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=15, logging=True, 
+                                 loss=metric, optimizer=optimizer,
+                                 dropout=dropout, embedding_weights=embedding_weights)
+    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=20, logging=True, 
                     logging_fp=logging_fp, validation_data=(X_test, y_test))
