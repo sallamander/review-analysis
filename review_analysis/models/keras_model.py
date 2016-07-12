@@ -144,8 +144,12 @@ if __name__ == '__main__':
     
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
                                                         random_state=609)
-
-    print('Need to beat... {}'.format(intellegently_guess(y_train)))
+    
+    train_mean = y_train.mean()
+    train_guessing_error = intellegently_guess(y_train, train_mean)
+    test_guessing_error = intellegently_guess(y_test, train_mean)
+    print('Train needs to beat... {}'.format(train_guessing_error))
+    print('Test needs to beat... {}'.format(test_guessing_error))
     logging_fp = 'work/{}/{}/{}_{}_{}_'.format(metric, cell_type, optimizer, 
                                                encoding_size, dropout)
     keras_model = KerasSeq2NoSeq(input_length, cell_type=cell, 
