@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from nltk import pos_tag
 from tsne import tsne
 from review_analysis.utils.preprocessing import filter_ratios
 from review_analysis.utils.data_io import return_data
@@ -25,11 +26,11 @@ def filter_corpora(corpora, num_top_wrds):
 
     vectorizer = CountVectorizer(max_features=num_top_wrds, stop_words='english')
 
-    filtered_corpora = {}
-    for name, corpus in corpora.items():
+    filtered_corpora = []
+    for name, corpus in corpora:
         vectorizer.fit_transform(corpus)
         most_common_wrds = vectorizer.get_feature_names()
-        filtered_corpora[name] = most_common_wrds
+        filtered_corpora.append((name, most_common_wrds))
 
     return filtered_corpora
 
@@ -48,9 +49,9 @@ def gen_wrd_vec_matrix(filtered_corpora, wrd_embedding):
             name (str): word embedding (2d np.ndarray) pairs
     """
 
-    wrd_embedding_corpora = {}
+    wrd_embedding_corpora = [] 
     embed_dim = wrd_embedding.vector_size
-    for name, corpus in filtered_corpora.items():
+    for name, corpus in filtered_corpora:
         embedding_matrix = np.zeros((0, embed_dim))
         for idx, wrd in enumerate(corpus):
             if wrd in wrd_embedding:
@@ -58,7 +59,7 @@ def gen_wrd_vec_matrix(filtered_corpora, wrd_embedding):
                 wrd_vector = wrd_embedding[wrd][np.newaxis]
                 embedding_matrix = np.concatenate([embedding_matrix, 
                                                    wrd_vector])
-        wrd_embedding_corpora[name] = embedding_matrix
+        wrd_embedding_corpora.append((name, embedding_matrix))
 
     return wrd_embedding_corpora
 
@@ -76,14 +77,15 @@ def gen_tsne_embedding(wrd_embedding_corpora):
             name (str): tsne embedding (2d np.ndarray) pairs
     """
 
-    tsne_embedding_corpora = {}
-    for name, wrd_embedding in wrd_embedding_corpora.items():
+    tsne_embedding_corpora = {} 
+    for name, wrd_embedding in wrd_embedding_corpora:
         tsne_embedding = tsne(wrd_embedding)
         tsne_embedding_corpora[name] = tsne_embedding
 
     return tsne_embedding_corpora
 
-def plot_tsne(tsne_embedding_corpora, filtered_corpora, save_fp=None, title=None):
+def plot_tsne(tsne_embedding_corpora, filtered_corpora, pos_filter=None,
+              save_fp=None, title=None):
     """Plot the tsne embeddings of the vocab in `filtered_corpora`.
 
     Args:
@@ -92,6 +94,8 @@ def plot_tsne(tsne_embedding_corpora, filtered_corpora, save_fp=None, title=None
             name (str): tsne embedding (2d np.ndarray) pairs
         filtered_corpora: dict
             name (str): filtered corpus (list of words) pairs
+        pos_filter (optional): set (or other array-like)
+            parts of speech to filter the tsne plot by
         save_fp (optional): str
         title (optional): str
     """
@@ -105,17 +109,24 @@ def plot_tsne(tsne_embedding_corpora, filtered_corpora, save_fp=None, title=None
     num = 0
     corpora_size = len(filtered_corpora)
     legend_handles = []
-    for name, corpus in filtered_corpora.items():
+    for name, corpus in filtered_corpora:
         num += 1
         tsne_embeddings = tsne_embedding_corpora[name]
         tsne_embeddings = (tsne_embeddings - dim_mins) / (dim_maxes - dim_mins)
         color = plt.cm.Set3(num / corpora_size)
         patch = mpatches.Patch(color=color, label=name)
         legend_handles.append(patch)
-
-        for tsne_embedding, wrd in zip(tsne_embeddings, corpus):
-            plt.text(tsne_embedding[0], tsne_embedding[1], wrd, 
-                     color=color, fontdict={'weight': 'bold', 'size': 12})
+        
+        if pos_filter: 
+            for tsne_embedding, wrd in zip(tsne_embeddings, corpus):
+                wrd_pos = pos_tag([wrd]) # Returns [(wrd, pos)]
+                if wrd_pos[0][1] in pos_filter: 
+                    plt.text(tsne_embedding[0], tsne_embedding[1], wrd, 
+                         color=color, fontdict={'weight': 'bold', 'size': 12})
+        else: 
+            for tsne_embedding, wrd in zip(tsne_embeddings, corpus):
+                plt.text(tsne_embedding[0], tsne_embedding[1], wrd, 
+                         color=color, fontdict={'weight': 'bold', 'size': 12})
     
     plt.legend(loc='best', handles=legend_handles)
     if title: 
@@ -172,9 +183,11 @@ if __name__ == '__main__':
     middle_reviews = reviews_df.loc[middle_mask, 'text'].values
     helpful_reviews = reviews_df.loc[helpful_mask, 'text'].values
     
-    corpora = {'Unhelpful Reviews (0.0 - 0.10)': unhelpful_reviews, 
-               'Middle Reviews (0.10 - 0.90)': middle_reviews, 
-               'Helpful Reviews (0.90 - 1.00)': helpful_reviews}
+    # Use a list of tuples instead of a dict. to ensure order, so each corpus
+    # gets the same color label each time through the `tsne_plot` below.
+    corpora = [('Unhelpful Reviews (0.0 - 0.10)', unhelpful_reviews), 
+               ('Middle Reviews (0.10 - 0.90)', middle_reviews), 
+               ('Helpful Reviews (0.90 - 1.00)', helpful_reviews)]
     num_top_wrds = 100
 
     filtered_corpora = filter_corpora(corpora, num_top_wrds)
@@ -182,5 +195,18 @@ if __name__ == '__main__':
     tsne_embedding_corpora = gen_tsne_embedding(wrd_embedding_corpora)
     
     title = 'Word Embeddings for the Top {} Words In Reviews'.format(num_top_wrds)
-    save_fp = 'work/tsne.png'
-    plot_tsne(tsne_embedding_corpora, filtered_corpora, save_fp, title)
+    save_fp = 'work/tsne_{}.png'.format(num_top_wrds)
+    plot_tsne(tsne_embedding_corpora, filtered_corpora, save_fp=save_fp, 
+              title=title)
+    
+    pos_tags = [('Adjectives', {'JJ', 'JJR', 'JJS'}), 
+                ('Nouns', {'NN', 'NNP', 'NNPS', 'NNS'}), 
+                ('Pronouns', {'PRP', 'PRP$'}), ('Adverbs', {'RB', 'RBR', 'RBS'}), 
+                ('Verbs', {'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'})]
+    title = 'Word Embeddings for the {} in Top {} Words in Reviews'
+    save_fp = 'work/tsne_{}_{}.png'
+    for descriptor, tags in pos_tags:
+        tag_title = title.format(descriptor, num_top_wrds)
+        tag_save_fp = save_fp.format(descriptor, num_top_wrds)
+        plot_tsne(tsne_embedding_corpora, filtered_corpora, pos_filter=tags, 
+                  save_fp=tag_save_fp, title=tag_title)
