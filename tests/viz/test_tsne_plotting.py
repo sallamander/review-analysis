@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from gensim.models.word2vec import Word2Vec
 from review_analysis.viz.word_plotting import filter_corpora, \
-        gen_wrd_vec_matrix, gen_tsne_embedding
+        gen_wrd_vec_matrix, gen_tsne_embedding, calc_corpora_embedding_bounds
 
 class TestWordPlotting: 
 
@@ -57,3 +57,16 @@ class TestWordPlotting:
         assert (len(tsne_embedding_corpora) == len(wrd_embedding_corpora))
         assert (tsne_embedding_corpora['corpus1'].shape == ((10, 2)))
         assert (tsne_embedding_corpora['corpus2'].shape == ((20, 2)))
+
+    def test_calc_corpora_embedding_bounds(self): 
+
+        embedding_corpus1 = np.array([[1.5, 2.7]])
+        embedding_corpus2 = np.array([[1.3, 3.9]])
+        embedding_corpus3 = np.array([[1.7, 1.5]])
+        tsne_embedding_corpora = {'corpus1': embedding_corpus1, 
+                                  'corpus2': embedding_corpus2, 
+                                  'corpus3': embedding_corpus3}
+
+        dim_mins, dim_maxes = calc_corpora_embedding_bounds(tsne_embedding_corpora)
+        assert np.all(dim_mins == np.array([1.3, 1.5]))
+        assert np.all(dim_maxes == np.array([1.7, 3.9]))
