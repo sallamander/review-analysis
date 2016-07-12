@@ -15,6 +15,8 @@ class NetErrorPlotter(object):
         num_subplots = len(self.errors)
         num_rows, num_cols = self._calc_subplot_dims(num_subplots)
         self.fig, self.axes = plt.subplots(num_rows, num_cols)
+        if num_subplots == 1: 
+            self.axes = np.array([self.axes]) # Ensure the flatten below works.
         self._calc_bounds()
         for ax, errors_tup in zip(self.axes.flatten(), self.errors):
             self._plot_subplot(ax, errors_tup)
@@ -43,6 +45,9 @@ class NetErrorPlotter(object):
             (int, int)
         """
 
+        if num_subplots == 1: 
+            return (1, 1)
+
         square_floor = int(num_subplots ** 0.5)
         num_plots_w_floor = square_floor * (square_floor + 1)
 
@@ -61,8 +66,10 @@ class NetErrorPlotter(object):
             mins.append(errors[skip:].min())
             maxes.append(errors[skip:].max())
 
-        self.min = np.min(mins)
-        self.max = np.max(maxes)
+        self.ymin = 0
+
+        ymax = np.max(maxes)
+        self.ymax = ymax + ymax * 0.10 # give the top of the plot a little room
 
     def _plot_subplot(self, ax, error_tup):
         """Plot the inputted `errors` on the inputted `ax`.
@@ -78,25 +85,56 @@ class NetErrorPlotter(object):
         errors = error_tup[1]
         
         ax.plot(errors)
-        ax.set_ylim(self.min, self.max)
+        ax.set_ylim(self.ymin, self.ymax)
         ax.set_title(title)
 
-    def show(self): 
-        """Show the plot."""
+def gen_title(path): 
+    """Generate a title string from the inputted path.
 
-        plt.show()
+    Each inputted string path is expected to take a specific format - any number
+    directories, followed by: 
+    'CELL/<optimizer>_<encoding_size>_<dropout_pct>_<train/test>_<losses_accs>.txt'
+
+    Args: 
+    ----
+        path: str
+
+    Return: 
+    ------
+        title: str
+    """
+
+    all_parts = path.split('/')
+    options_parts = all_parts[-1].split('_')
+    options_parts[-1] = options_parts[-1][:-4] # Strip the .txt
+
+    cell = all_parts[-2]
+    title = cell
+    for idx, part in enumerate(options_parts):
+        title += ' - ' + part
+        # help identify the two numbers
+        if idx == 1: 
+            title += (' (encoding_size)')
+        if idx == 2:
+            title += (' (dropout)')
+    
+    # make it a little prettier
+    replacements = (('adagrad', 'Adagrad'), ('rmsprop', 'RMSProp'), 
+                    ('train', 'Train'), ('val', 'Val'))
+    for replacement in replacements: 
+        title = title.replace(replacement[0], replacement[1])
+    
+    return title
 
 if __name__ == '__main__':
-    paths = ['work/mean_squared_error/GRU/adagrad_8_0_train_losses.txt', 
-             'work/mean_squared_error/GRU/rmsprop_8_0_train_losses.txt']
+    paths = ['work/mean_squared_error/GRU/rmsprop_8_0_train_losses.txt'] 
     
-    titles = ['GRU - Adagrad - 8', 'GRU - RMSProp - 8']
-
     errors_lst = []
-    for title, path in zip(titles, paths):
+    for path in paths:
         errors = np.loadtxt(path)
-        errors_lst.append((title, errors, True))
+        title = gen_title(path)
+        training = True if 'Train' in title else False 
+        errors_lst.append((title, errors, training))
 
     plotter = NetErrorPlotter(errors_lst)
     plt.show()
-    plotter.show()
