@@ -11,6 +11,7 @@ from keras.layers.recurrent import GRU, LSTM
 from keras.layers.core import Dense
 from keras.models import Model
 from keras.callbacks import EarlyStopping
+from keras.layers.normalization import BatchNormalization
 from review_analysis.utils.preprocessing import format_reviews
 from review_analysis.utils.keras_callbacks import LossSaver
 from review_analysis.utils.eval_utils import intellegently_guess
@@ -32,7 +33,7 @@ class KerasSeq2NoSeq(object):
     """
 
     def __init__(self, input_length, cell_type, encoding_size, loss, optimizer,   
-                 dropout=0.0, embedding_weights=None):
+                 dropout=0.0, batch_norm=False, embedding_weights=None):
         
         self.input_length = input_length
         self.cell_type = cell_type
@@ -41,6 +42,7 @@ class KerasSeq2NoSeq(object):
         self.metrics = []
         self.optimizer = optimizer
         self.dropout = dropout
+        self.batch_norm = batch_norm
         self.embedding_weights = embedding_weights
 
         self.model = self._build_model()
@@ -64,6 +66,8 @@ class KerasSeq2NoSeq(object):
             
         layer = self.cell_type(self.encoding_size, dropout_W=self.dropout, 
                                dropout_U=self.dropout)(inputs)
+        if self.batch_norm: 
+            layer = BatchNormalization()(layer)
 
         if self.loss == 'binary_crossentropy': 
             layer = Dense(2, activation='softmax')(layer)
@@ -110,12 +114,11 @@ class KerasSeq2NoSeq(object):
             callbacks.append(logger)
 
         self.model.fit(X_train, y_train, nb_epoch=nb_epoch, batch_size=batch_size,
-                       callbacks=callbacks, validation_data=validation_data, 
-                       shuffle=False)
+                       callbacks=callbacks, validation_data=validation_data)
 
 if __name__ == '__main__':
     if len(sys.argv) < 4: 
-        msg = "Usage: python model.py metric cell_type optimizer encoding_size dropout_pct"
+        msg = "Usage: python model.py metric cell_type optimizer encoding_size dropout_pct batch_norm_bool"
         raise RuntimeError(msg)
     else: 
         metric = sys.argv[1]
@@ -123,10 +126,9 @@ if __name__ == '__main__':
         cell_type = sys.argv[2]
         optimizer = sys.argv[3]
         encoding_size = int(sys.argv[4])
-        if len(sys.argv) >= 6: 
-            dropout = float(sys.argv[5])
-        else: 
-            dropout = 0
+        dropout = float(sys.argv[5])
+        batch_norm_str = sys.argv[6]
+        batch_norm = True if batch_norm_str == 'true' else False
 
         if cell_type == 'GRU':
             cell = GRU
@@ -158,11 +160,14 @@ if __name__ == '__main__':
     test_guessing_error = intellegently_guess(y_test, classification, train_mean)
     print('Train needs to beat... {}'.format(train_guessing_error))
     print('Test needs to beat... {}'.format(test_guessing_error))
-    logging_fp = 'work/{}/{}/{}_{}_{}_'.format(metric, cell_type, optimizer, 
-                                               encoding_size, dropout)
+    logging_fp = 'work/{}/{}/{}_{}_{}_{}_'.format(metric, cell_type, optimizer, 
+                                               encoding_size, dropout, 
+                                               batch_norm_str)
     keras_model = KerasSeq2NoSeq(input_length, cell_type=cell, 
                                  encoding_size=encoding_size, 
                                  loss=metric, optimizer=optimizer,
-                                 dropout=dropout, embedding_weights=embedding_weights)
-    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=20, logging=True, 
+                                 dropout=dropout, batch_norm=batch_norm,
+                                 embedding_weights=embedding_weights)
+    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=150,       
+                    early_stopping_tol=5, logging=True, 
                     logging_fp=logging_fp, validation_data=(X_test, y_test))
