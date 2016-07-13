@@ -4,17 +4,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class NetErrorPlotter(object): 
-    """A class for plotting errors from neural network training."""
+    """A class for plotting errors from neural network training.
+
+    Args:
+    -----
+        errors: list of tuples
+            tuples each represent a model run and are expected to contain 
+            (str, 1d np.ndarray, bool) that represent (title, errors, training)
+    """
 
     def __init__(self, errors): 
         self.errors = errors 
         self._build_plot()
 
     def _build_plot(self): 
+        """Build the plot with the inputted errors."""
         
         num_subplots = len(self.errors)
         num_rows, num_cols = self._calc_subplot_dims(num_subplots)
-        self.fig, self.axes = plt.subplots(num_rows, num_cols)
+        self.fig, self.axes = plt.subplots(num_rows, num_cols, figsize=(15, 8))
         if num_subplots == 1: 
             self.axes = np.array([self.axes]) # Ensure the flatten below works.
         self._calc_bounds()
@@ -53,6 +61,8 @@ class NetErrorPlotter(object):
 
         if num_plots_w_floor < num_subplots: 
             return (square_floor + 1, square_floor + 1)
+        elif square_floor ** 2 == num_subplots:
+            return (square_floor, square_floor)
         else: 
             return (square_floor + 1, square_floor)
 
@@ -86,6 +96,8 @@ class NetErrorPlotter(object):
         
         ax.plot(errors)
         ax.set_ylim(self.ymin, self.ymax)
+        ax.set_xlabel('Batch Number')
+        ax.set_ylabel('Loss')
         ax.set_title(title)
 
 def gen_title(path): 
@@ -112,11 +124,6 @@ def gen_title(path):
     title = cell
     for idx, part in enumerate(options_parts):
         title += ' - ' + part
-        # help identify the two numbers
-        if idx == 1: 
-            title += (' (encoding_size)')
-        if idx == 2:
-            title += (' (dropout)')
     
     # make it a little prettier
     replacements = (('adagrad', 'Adagrad'), ('rmsprop', 'RMSProp'), 
@@ -127,8 +134,20 @@ def gen_title(path):
     return title
 
 if __name__ == '__main__':
-    paths = ['work/mean_squared_error/GRU/rmsprop_8_0_train_losses.txt'] 
+    base_path = 'work/mean_squared_error/'
+    unit_types = ('LSTM', )
+    encoding_sizes = (8, 16, 32, 64)
+    optimizers = ('adagrad', 'rmsprop')
     
+    paths = []
+    for unit_type in unit_types:
+        for optimizer in optimizers: 
+            for encoding_size in encoding_sizes: 
+                path = base_path + '{}/{}_{}_0_train_losses.txt'.format(unit_type, 
+                                                                        optimizer, 
+                                                                        encoding_size)
+                paths.append(path) 
+
     errors_lst = []
     for path in paths:
         errors = np.loadtxt(path)
@@ -137,4 +156,5 @@ if __name__ == '__main__':
         errors_lst.append((title, errors, training))
 
     plotter = NetErrorPlotter(errors_lst)
-    plt.show()
+    plt.tight_layout()
+    plotter.fig.savefig('work/viz/{}_train.png'.format(unit_types[0]))
