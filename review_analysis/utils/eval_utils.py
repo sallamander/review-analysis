@@ -2,7 +2,7 @@
 
 import numpy as np
 
-def intellegently_guess(ratios, pred=None): 
+def intellegently_guess(ratios, classification=False, pred=None): 
     """Simulate the error from intellegently guessing (e.g. guessing the mean).
 
     Assume mean squared error.
@@ -10,6 +10,7 @@ def intellegently_guess(ratios, pred=None):
     Args: 
     ----
         ratios: 1d np.ndarray of floats
+        classification (optional): bool
         pred (optional): float
             mean to use as the prediction
 
@@ -21,6 +22,12 @@ def intellegently_guess(ratios, pred=None):
     if not pred: 
         pred = ratios.mean()
     nobs = ratios.shape[0]
-    error = np.sum((ratios - pred) ** 2) / nobs
+    if classification:
+        # Case of predicting on a 2d array meant for Keras model
+        if len(ratios.shape) == 2:
+            ratios = ratios[:, 1]
+        error = ratios.mean() # this is really accuracy
+    else: 
+        error = np.sum((ratios - pred) ** 2) / nobs
 
     return error

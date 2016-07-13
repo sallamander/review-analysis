@@ -119,6 +119,7 @@ if __name__ == '__main__':
         raise RuntimeError(msg)
     else: 
         metric = sys.argv[1]
+        classification = True if metric == "binary_crossentropy" else False
         cell_type = sys.argv[2]
         optimizer = sys.argv[3]
         encoding_size = int(sys.argv[4])
@@ -153,8 +154,8 @@ if __name__ == '__main__':
                                                         random_state=609)
     
     train_mean = y_train.mean()
-    train_guessing_error = intellegently_guess(y_train, train_mean)
-    test_guessing_error = intellegently_guess(y_test, train_mean)
+    train_guessing_error = intellegently_guess(y_train, classification, train_mean) 
+    test_guessing_error = intellegently_guess(y_test, classification, train_mean)
     print('Train needs to beat... {}'.format(train_guessing_error))
     print('Test needs to beat... {}'.format(test_guessing_error))
     logging_fp = 'work/{}/{}/{}_{}_{}_'.format(metric, cell_type, optimizer, 
