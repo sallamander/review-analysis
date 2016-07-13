@@ -12,8 +12,10 @@ import numpy as np
 import multiprocessing
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cross_validation import train_test_split
-from sklearn.linear_model import ElasticNet, SGDClassifier
+from sklearn.linear_model import ElasticNet, LogisticRegression
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.grid_search import GridSearchCV
+from sklearn.metrics import accuracy_score, mean_squared_error
 from review_analysis.utils.eval_utils import intellegently_guess
 
 def get_grid_params(model_name):
@@ -29,15 +31,14 @@ def get_grid_params(model_name):
     """
 
     if model_name == 'logistic': 
-        param_dct = {'penalty': ['elasticnet'], 'alpha': [0.00001, 0.0001, 0.001],
-                     'l1_ratio': [0.10, 0.15, 0.20]}
+        param_dct = {'penalty': ['l1', 'l2'], 'C': [0.1, 1.0, 10]} 
     elif model_name == 'linear':
-        param_dct = {'alpha': [0.1, 1.0, 10.0], 'l1_ratio' : [0.25, 0.50, 0.75]}
+        param_dct = {'alpha': [0.1], 'l1_ratio' : [0.25]}
     elif model_name == 'random_forest':
-        param_dct = {'n_estimators': [32, 64, 128], 
-                     'min_samples_leaf': [1, 5, 10], 
-                     'max_depth': [2, 4, 8, 16], 
-                     'max_features': ['sqrt', 'log2']}
+        param_dct = {'n_estimators': [32], 
+                     'min_samples_leaf': [1], 
+                     'max_depth': [2], 
+                     'max_features': ['sqrt']}
     else: 
         raise RuntimeError('Unsupported `model_name` inputted!')
 
@@ -63,7 +64,7 @@ def get_model(model_name, problem_type):
     if model_name == 'linear':
         model = ElasticNet(random_state=rand_state)
     elif model_name == 'logistic': 
-        model = SGDClassifier(loss='log', random_state=rand_state)
+        model = LogisticRegression(random_state=rand_state)
     elif model_name == 'random_forest':
         if problem_type == 'regression':
             model = RandomForestRegressor(n_jobs = num_usable_cores, 
@@ -76,14 +77,41 @@ def get_model(model_name, problem_type):
 
     return model 
 
+def calc_score(model, scorer, X, y_true):
+    """Calculate the score by predicting on X.
+
+    Args:
+    ----
+        model: fitted model implementing the sklearn interface
+        scorer: sklearn.metrics metric
+        X: 2d np.ndarray
+        y_true: 1d np.ndarray
+
+    Returns: 
+    -------
+        score: float
+    """
+
+    y_preds = model.predict(X)
+    score = scorer(y_true, y_preds)
+
+    return score
+
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         msg = "Usage: python non_net_model.py problem_type model_name max_features"
         raise RuntimeError(msg)
     else: 
         problem_type = sys.argv[1]
+        classification = True if problem_type == "classification" else False
         model_name = sys.argv[2]
         max_features = int(sys.argv[3])
+
+    bad_combo = (classification and model_name == "linear") or \
+                (not classification and model_name == "logistic")
+    if bad_combo:
+        msg = "Inappropriate combo of {} and {}!".format(problem_type, model_name)
+        raise RuntimeError(msg)
  
     raw_reviews_fp = 'work/raw_reviews.pkl'
     ratios_fp = 'work/filtered_ratios.npy'
@@ -101,12 +129,24 @@ if __name__ == '__main__':
     X_train = vectorizer.fit_transform(X_train)
     X_test = vectorizer.transform(X_test)
 
+    if problem_type == "classification": 
+        y_train = y_train > 0.50
+        y_test = y_test > 0.50
+
     train_mean = y_train.mean()
-    train_guessing_error = intellegently_guess(y_train, train_mean)
-    test_guessing_error = intellegently_guess(y_test, train_mean)
+    train_guessing_error = intellegently_guess(y_train, classification, train_mean)
+    test_guessing_error = intellegently_guess(y_test, classification, train_mean)
     print('Train needs to beat... {}'.format(train_guessing_error))
     print('Test needs to beat... {}'.format(test_guessing_error))
     
-    
-    grid_params = get_grid_params(model_name)
+    params = get_grid_params(model_name)
     model = get_model(model_name, problem_type)
+    grid_search = GridSearchCV(estimator=model, param_grid=params, cv=10)
+    grid_search.fit(X_train, y_train)
+
+    best_model = grid_search.best_estimator_
+    scorer = accuracy_score if classification else mean_squared_error
+    train_score = calc_score(best_model, scorer, X_train, y_train)
+    test_score = calc_score(best_model, scorer, X_test, y_test)
+
+
