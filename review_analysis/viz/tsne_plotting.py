@@ -1,4 +1,8 @@
-"""A module for creating visuals surrounding word counts, word vectors, etc."""
+"""A module for creating visuals surrounding word counts, word vectors, etc.
+
+The `tsne` function below was taken from: 
+https://lvdmaaten.github.io/tsne/
+"""
 
 import sys
 import os
@@ -13,7 +17,7 @@ from tsne import tsne
 from review_analysis.utils.preprocessing import filter_ratios
 from review_analysis.utils.data_io import return_data
 
-def filter_corpora(corpora, num_top_wrds):
+def filter_corpora(corpora, num_top_wrds, skip=0):
     """Filter each inputted corpus into only `num_top_words` words.
 
     Args: 
@@ -21,18 +25,21 @@ def filter_corpora(corpora, num_top_wrds):
         corpora: list of tuples
             (name (str), corpus (1d np.ndarray of strings) pairs)
         num_top_words :int
+        skip (optional): int
+            allows for looking at the second, third, fourth `num_top_wrds`
 
     Return:
     ------
         filtered_corpora: list of tuples
     """
 
+    num_top_wrds += skip 
     vectorizer = CountVectorizer(max_features=num_top_wrds, stop_words='english')
 
     filtered_corpora = []
     for name, corpus in corpora:
         vectorizer.fit_transform(corpus)
-        most_common_wrds = vectorizer.get_feature_names()
+        most_common_wrds = vectorizer.get_feature_names()[skip:]
         filtered_corpora.append((name, most_common_wrds))
 
     return filtered_corpora
@@ -196,12 +203,12 @@ class TSNEPlotter(object):
 
 if __name__ == '__main__':
     if len(sys.argv) < 4: 
-        msg = "Usage: python tsne_plotting.py min_ratio max_ratio skip_top_wrds"
+        msg = "Usage: python tsne_plotting.py min_ratio max_ratio skip_wrds"
         raise RuntimeError(msg)
     else: 
         min_ratio = float(sys.argv[1])
         max_ratio = float(sys.argv[2])
-        skip_top_wrds = int(sys.argv[3])
+        skip_wrds = int(sys.argv[3])
     # Loading the entire df will allow for throwing the raw texts into 
     # sklearns `CountVectorizer`.
     filtered_reviews_df_fp = 'work/reviews/amazon/filtered_food_reviews.csv' 
@@ -228,14 +235,19 @@ if __name__ == '__main__':
                (middle_title, middle_reviews), 
                (helpful_title, helpful_reviews)]
     num_top_wrds = 100 
-    filtered_corpora = filter_corpora(corpora, num_top_wrds)
+    filtered_corpora = filter_corpora(corpora, num_top_wrds, skip_wrds)
     wrd_embedding_corpora = gen_wrd_vec_matrix(filtered_corpora, wrd_embedding)
     tsne_embedder = TSNEEmbedder(wrd_embedding_corpora)
     tsne_embedding_corpora = tsne_embedder.tsne_embedding_corpora
     
-    title = 'Word Embeddings for the Top {} Words In Reviews'.format(num_top_wrds)
-    save_fp = 'work/viz/tsne_{}_{}_{}/tsne.png'.format(num_top_wrds, min_ratio,
-                                                       max_ratio)
+    if skip_wrds: 
+        min_wrd_idx, max_wrd_idx = skip_wrds, skip_wrds + num_top_wrds
+        top_wrds_title = '{} - {}'.format(min_wrd_idx, max_wrd_idx)
+    else: 
+        top_wrds_title = num_top_wrds
+    title = 'Word Embeddings for the Top {} Words In Reviews'.format(top_wrds_title)
+    save_fp = 'work/viz/tsne_{}_{}_{}_{}/tsne.png'.format(num_top_wrds, skip_wrds, 
+                                                          min_ratio, max_ratio)
     
     # ensure the directory to store the tsne pngs is created
     if not os.path.exists(os.path.dirname(save_fp)):
@@ -248,10 +260,10 @@ if __name__ == '__main__':
                'Nouns': {'NN', 'NNP', 'NNPS', 'NNS'}, 
                'Adverbs': {'RB', 'RBR', 'RBS'}, 
                'Verbs': {'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'}}
-    save_fp = 'work/viz/tsne_{}_{}_{}/tsne_{}.png'
+    save_fp = 'work/viz/tsne_{}_{}_{}_{}/tsne_{}.png'
     for descriptor, tags in pos_tags.items():
-            tag_title = title.format(descriptor, num_top_wrds)
-            tag_save_fp = save_fp.format(num_top_wrds, min_ratio, max_ratio, 
-                                         descriptor)
+            tag_title = title.format(descriptor, top_wrds_title)
+            tag_save_fp = save_fp.format(num_top_wrds, skip_wrds, min_ratio,
+                                         max_ratio, descriptor)
             TSNEPlotter(tsne_embedding_corpora, filtered_corpora, 
                         pos_filter=tags, save_fp=tag_save_fp, title=tag_title)
