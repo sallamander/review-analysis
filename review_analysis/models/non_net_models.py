@@ -10,6 +10,8 @@ import pickle
 import pandas as pd
 import numpy as np
 import multiprocessing
+import time
+from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cross_validation import train_test_split
 from sklearn.linear_model import ElasticNet, LogisticRegression
@@ -33,11 +35,12 @@ def get_grid_params(model_name):
     if model_name == 'logistic': 
         param_dct = {'penalty': ['l1', 'l2'], 'C': [0.1, 1.0, 10]} 
     elif model_name == 'linear':
-        param_dct = {'alpha': [0.1], 'l1_ratio' : [0.25]}
+        param_dct = {'alpha': [0.001, 0.01, 0.1], 
+                     'l1_ratio' : [0.20, 0.25, 0.30]}
     elif model_name == 'random_forest':
-        param_dct = {'n_estimators': [32], 
-                     'min_samples_leaf': [1], 
-                     'max_depth': [2], 
+        param_dct = {'n_estimators': [4, 8, 16, 32], 
+                     'min_samples_leaf': [1, 5, 10], 
+                     'max_depth': [2, 4, 8, 16], 
                      'max_features': ['sqrt']}
     else: 
         raise RuntimeError('Unsupported `model_name` inputted!')
@@ -56,7 +59,7 @@ def get_model(model_name, problem_type):
     ------
         varied: insantiated model object
     """
-    # if user isn't "sallamander", it's on a dedicated instance - use all cores.
+    # if user isn't "sallamander", it's on a dedicated instance - use all the cores
     num_usable_cores = multiprocessing.cpu_count() \
         if os.environ['USER'] != 'sallamander' else 1
     rand_state=609
@@ -96,6 +99,34 @@ def calc_score(model, scorer, X, y_true):
     score = scorer(y_true, y_preds)
 
     return score
+
+def log_results(best_model, model_name, max_features, train_score, test_score,
+                score_fp): 
+    """Log the results of our grid searching. 
+
+    Args: 
+    ----
+        best_model: fitted sklearn model
+        model_name: str
+        max_features: int
+        train_score: float 
+        test_score: float
+        score_fp: str
+    """
+
+    # ensure the directorys where metrics are stored are created
+    if not os.path.exists(os.path.dirname(score_fp)):
+        os.makedirs(os.path.dirname(score_fp), exist_ok=True)
+
+    st = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+    with open(score_fp, 'a+') as f:
+        f.write(st + '\n')
+        f.write('-' * 100 + '\n')
+        f.write('Model Run: {}\n\n'.format(model_name))
+        f.write('Params: {}\n\n'.format(best_model.get_params())) 
+        f.write('Max features: {}\n\n'.format(max_features))
+        f.write('Train Score: {}\n\n'.format(train_score))
+        f.write('Test Score: {}\n\n'.format(test_score))
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
@@ -149,4 +180,6 @@ if __name__ == '__main__':
     train_score = calc_score(best_model, scorer, X_train, y_train)
     test_score = calc_score(best_model, scorer, X_test, y_test)
 
-
+    score_fp = 'work/non_net_scores/{}_{}.txt'.format(problem_type, model_name)
+    log_results(best_model, model_name, max_features, train_score, test_score,
+                score_fp)
