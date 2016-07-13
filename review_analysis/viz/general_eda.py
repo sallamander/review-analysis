@@ -42,7 +42,7 @@ def plot_hist_kde(data, bins=20, hist=True, kde=True, title=None, ylabel=None,
     else: 
         plt.show()
 
-def plot_boxplot(ratios, title=None, xlabel=None, save_fp=None):
+def plot_boxplot(ratios, xlim=None, title=None, xlabel=None, save_fp=None):
     """Plot a boxplot of the inputted data.
 
     Args:
@@ -59,6 +59,8 @@ def plot_boxplot(ratios, title=None, xlabel=None, save_fp=None):
         plt.xlabel(xlabel)
     plt.grid(False)
 
+    if xlim:
+        plt.xlim(xlim)
     if save_fp: 
         plt.savefig(save_fp)
         plt.close()
@@ -66,7 +68,7 @@ def plot_boxplot(ratios, title=None, xlabel=None, save_fp=None):
         plt.show()
 
 if __name__ == '__main__':
-    filtered_reviews_fp = 'work/reviews/amazon/filtered_food_reviews.csv'
+    filtered_reviews_fp = 'work/reviews/amazon/raw_food_reviews.csv'
     filtered_reviews_df = pd.read_csv(filtered_reviews_fp)
 
     helpfulness_denom = filtered_reviews_df['helpfulness_denominator']
@@ -77,15 +79,16 @@ if __name__ == '__main__':
 
     plot_hist_kde(helpfulness_denom, bins=500, kde=False, title=title, 
                   ylabel=ylabel, xlabel=xlabel, xlim=xlim, xticks=range(0, 50, 5), 
-                  save_fp='work/votes_xlim_0_50.png')
+                  save_fp='work/temp_viz/votes_xlim_0_50.png')
 
     xlim = (0, 20)
     plot_hist_kde(helpfulness_denom, bins=500, kde=False, title=title, 
                   ylabel=ylabel, xlabel=xlabel, xlim=xlim, xticks=range(0, 20, 2), 
-                  save_fp='work/votes_xlim_0_20.png')
+                  save_fp='work/temp_viz/votes_xlim_0_20.png')
 
     query_str = 'helpfulness_denominator > @vote_frequency'
     title = 'Distribution of Helpfulness Ratio'
+    xlim = (0, 1)
     for vote_frequency in range(0, 55, 5): 
         num_obs = (helpfulness_denom > vote_frequency).sum()
         filtered_by_votes = filtered_reviews_df.query(query_str)
@@ -96,6 +99,9 @@ if __name__ == '__main__':
         print('Ratio Mean: {}'.format(ratios.mean()))
         print('Ratio Variance: {}'.format(ratios.var()))
 
-        xlabel = 'Helpfulness Ratio - Min. {} Votes'.format(vote_frequency)
-        save_fp='work/ratio_{}_votes.png'.format(vote_frequency)
-        plot_boxplot(ratios, title=title, xlabel=xlabel, save_fp=save_fp)
+        xlabel = 'Helpfulness Ratio - Greater than {} Votes'.format(vote_frequency)
+        save_fp='work/temp_viz/ratio_boxplot_{}_votes.png'.format(vote_frequency)
+        plot_boxplot(ratios, xlim=xlim, title=title, xlabel=xlabel, save_fp=save_fp)
+        save_fp='work/temp_viz/ratio_hist_{}_votes.png'.format(vote_frequency)
+        plot_hist_kde(ratios, bins=50, kde=False, title=title, 
+                ylabel=ylabel, xlabel=xlabel, save_fp=save_fp, xlim=xlim)
