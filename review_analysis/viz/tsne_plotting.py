@@ -1,5 +1,7 @@
 """A module for creating visuals surrounding word counts, word vectors, etc."""
 
+import sys
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -63,26 +65,50 @@ def gen_wrd_vec_matrix(filtered_corpora, wrd_embedding):
 
     return wrd_embedding_corpora
 
-def gen_tsne_embedding(wrd_embedding_corpora):
-    """Run TSNE for each inputted corpus. 
+class TSNEEmbedder(object): 
+    """A class for running TSNE on inputted corpora. 
 
-    Args:
+    This class runs TSNE simultaneously over all of the inputted corpora. If
+    multiple, this ensures that each corpora is embedded in the same vector 
+    space.
+
+    Args: 
     ----
-        wrd_matrix_corpora: dict
-            name (str): word matrix (2d np.ndarray) pairs
-
-    Return:
-    ------
-        tsne_embedding_corpora:dict
-            name (str): tsne embedding (2d np.ndarray) pairs
+        wrd_embedding_corpora: list of tuples
+            (name (str), word embeddings (2d np.ndarray) pairs)
     """
 
-    tsne_embedding_corpora = {} 
-    for name, wrd_embedding in wrd_embedding_corpora:
-        tsne_embedding = tsne(wrd_embedding)
-        tsne_embedding_corpora[name] = tsne_embedding
+    def __init__(self, wrd_embedding_corpora):
+        self.wrd_embedding_corpora = wrd_embedding_corpora
+        self.emedding_dims = wrd_embedding_corpora[0][1].shape[1]
+        self.num_corpus = len(wrd_embedding_corpora)
 
-    return tsne_embedding_corpora
+        self.master_wrd_embedding = self._concat_wrd_embeddings()
+        self.master_tsne_embedding = tsne(self.master_wrd_embedding)
+        self.tsne_embedding_corpora = self._flatten_tsne_embeddings()
+
+    def _concat_wrd_embeddings(self): 
+        """Concat all of the word embeddings in the corpus."""
+
+        embedding_dims = self.wrd_embedding_corpora[0][1].shape[1]
+        master_wrd_embedding = np.zeros((0, embedding_dims))
+        for name, embedding in self.wrd_embedding_corpora:
+            master_wrd_embedding = np.concatenate([master_wrd_embedding, embedding])
+
+        return master_wrd_embedding
+    
+    def _flatten_tsne_embeddings(self):
+        """Flatten `master_tsne_embedding`- map back to the original corpora."""
+
+        tsne_embedding_corpora = {} 
+        start_idx = 0
+        for name, embedding in self.wrd_embedding_corpora:
+            end_idx = start_idx + embedding.shape[0]
+            tsne_embedding = self.master_tsne_embedding[start_idx:end_idx]
+            tsne_embedding_corpora[name] = tsne_embedding
+            start_idx = end_idx
+
+        return tsne_embedding_corpora
 
 class TSNEPlotter(object):
     """A class for building visualizations from TSNE embeddings.
@@ -169,6 +195,13 @@ class TSNEPlotter(object):
             self.tsne_embedding_corpora[name] = embedding
 
 if __name__ == '__main__':
+    if len(sys.argv) < 4: 
+        msg = "Usage: python tsne_plotting.py min_ratio max_ratio skip_top_wrds"
+        raise RuntimeError(msg)
+    else: 
+        min_ratio = float(sys.argv[1])
+        max_ratio = float(sys.argv[2])
+        skip_top_wrds = int(sys.argv[3])
     # Loading the entire df will allow for throwing the raw texts into 
     # sklearns `CountVectorizer`.
     filtered_reviews_df_fp = 'work/reviews/amazon/filtered_food_reviews.csv' 
@@ -178,9 +211,9 @@ if __name__ == '__main__':
     ratios = np.load(filtered_ratios_fp)
     wrd_embedding = return_data("word_embedding")
 
-    unhelpful_mask = filter_ratios(ratios, max=0.10)
-    middle_mask = filter_ratios(ratios, min=0.10, max=0.90)
-    helpful_mask = filter_ratios(ratios, min=0.90)
+    unhelpful_mask = filter_ratios(ratios, max=min_ratio)
+    middle_mask = filter_ratios(ratios, min=min_ratio, max=max_ratio)
+    helpful_mask = filter_ratios(ratios, min=min_ratio)
 
     unhelpful_reviews = reviews_df.loc[unhelpful_mask, 'text'].values
     middle_reviews = reviews_df.loc[middle_mask, 'text'].values
@@ -188,16 +221,25 @@ if __name__ == '__main__':
     
     # Use a list of tuples instead of a dict. to ensure order, so each corpus
     # gets the same color label each time through the `tsne_plot` below.
-    corpora = [('Unhelpful Reviews (0.0 - 0.10)', unhelpful_reviews), 
-               ('Middle Reviews (0.10 - 0.90)', middle_reviews), 
-               ('Helpful Reviews (0.90 - 1.00)', helpful_reviews)]
-    num_top_wrds = 100
+    unhelpful_title = 'Unhelpful Reviews (0.0 - {})'.format(min_ratio)
+    middle_title = 'Middle Reviews ({} - {})'.format(min_ratio, max_ratio) 
+    helpful_title = 'Helpful Reviews ({} - 1.00)'.format(max_ratio)
+    corpora = [(unhelpful_title, unhelpful_reviews), 
+               (middle_title, middle_reviews), 
+               (helpful_title, helpful_reviews)]
+    num_top_wrds = 100 
     filtered_corpora = filter_corpora(corpora, num_top_wrds)
     wrd_embedding_corpora = gen_wrd_vec_matrix(filtered_corpora, wrd_embedding)
-    tsne_embedding_corpora = gen_tsne_embedding(wrd_embedding_corpora)
+    tsne_embedder = TSNEEmbedder(wrd_embedding_corpora)
+    tsne_embedding_corpora = tsne_embedder.tsne_embedding_corpora
     
     title = 'Word Embeddings for the Top {} Words In Reviews'.format(num_top_wrds)
-    save_fp = 'work/viz/tsne_{}.png'.format(num_top_wrds)
+    save_fp = 'work/viz/tsne_{}_{}_{}/tsne.png'.format(num_top_wrds, min_ratio,
+                                                       max_ratio)
+    
+    # ensure the directory to store the tsne pngs is created
+    if not os.path.exists(os.path.dirname(save_fp)):
+        os.makedirs(os.path.dirname(save_fp), exist_ok=True)
     tsne_plotter = TSNEPlotter(tsne_embedding_corpora, filtered_corpora,           
                                save_fp=save_fp, title=title)
 
@@ -206,9 +248,10 @@ if __name__ == '__main__':
                'Nouns': {'NN', 'NNP', 'NNPS', 'NNS'}, 
                'Adverbs': {'RB', 'RBR', 'RBS'}, 
                'Verbs': {'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'}}
-    save_fp = 'work/viz/tsne_{}_{}.png'
+    save_fp = 'work/viz/tsne_{}_{}_{}/tsne_{}.png'
     for descriptor, tags in pos_tags.items():
             tag_title = title.format(descriptor, num_top_wrds)
-            tag_save_fp = save_fp.format(descriptor, num_top_wrds)
-            TSNEPlotter(tsne_embedding_corpora, filtered_corpora, pos_filter=tags, 
-                      save_fp=tag_save_fp, title=tag_title)
+            tag_save_fp = save_fp.format(num_top_wrds, min_ratio, max_ratio, 
+                                         descriptor)
+            TSNEPlotter(tsne_embedding_corpora, filtered_corpora, 
+                        pos_filter=tags, save_fp=tag_save_fp, title=tag_title)

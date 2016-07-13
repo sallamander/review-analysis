@@ -2,32 +2,37 @@ import pytest
 import numpy as np
 from gensim.models.word2vec import Word2Vec
 from review_analysis.viz.tsne_plotting import filter_corpora, \
-        gen_wrd_vec_matrix, gen_tsne_embedding, TSNEPlotter 
+        gen_wrd_vec_matrix, TSNEPlotter, TSNEEmbedder
 
 class TestWordPlotting: 
 
     def setup_class(cls):
 
-        cls.embedding_corpora = {'Test1': np.zeros((2, 10)), 
+        cls.embedding_corpora_dct = {'Test1': np.zeros((2, 10)), 
                                  'Test2': np.ones((5, 10)), 
                                  'Test3': np.random.random((10, 10))}
+        cls.embedding_corpora_lst = [('Test1', np.zeros((2, 10))), 
+                                     ('Test2', np.ones((5, 10))), 
+                                     ('Test3', np.random.random((10, 10)))]
         cls.filtered_corpora = [('Test1', ['This' ,'is', 'a', 'list']), 
                                 ('Test2', ['Hi', 'Matthew', '??']), 
                                 ('Test3', ['Cant', 'forget', 'Felix', '!'])]
 
     def teardown_class(cls):
-       del cls.embedding_corpora, cls.filtered_corpora
+       del cls.embedding_corpora_dct
+       del cls.embedding_corpora_lst
+       del cls.filtered_corpora
 
     def test_calc_corpora_embedding_bounds(self):
 
-        tsne_plotter = TSNEPlotter(self.embedding_corpora, self.filtered_corpora)
+        tsne_plotter = TSNEPlotter(self.embedding_corpora_dct, self.filtered_corpora)
 
         assert np.all(tsne_plotter.dim_mins == 0)
         assert np.all(tsne_plotter.dim_maxes == 1)
 
     def test_scale_tsne_embeddings(self): 
 
-        tsne_plotter = TSNEPlotter(self.embedding_corpora, self.filtered_corpora)
+        tsne_plotter = TSNEPlotter(self.embedding_corpora_dct, self.filtered_corpora)
         for embedding in tsne_plotter.tsne_embedding_corpora.values():
             assert (embedding.min() >= 0)
             assert (embedding.max() <= 1)
@@ -72,14 +77,20 @@ class TestWordPlotting:
         assert (wrd_matrix_corpora[0][1].shape == 
                 (len(filtered_corpus1), embed_dim))
 
-    def test_gen_tsne_embedding(self):
+    def test_concat_wrd_embeddings(self):
+        
+        tsne_embedder = TSNEEmbedder(self.embedding_corpora_lst)
+        assert (tsne_embedder.master_wrd_embedding.shape == (17, 10))
 
-        wrd_embedding_corpus1 = np.zeros((10, 50))
-        wrd_embedding_corpus2 = np.zeros((20, 50))
-        wrd_embedding_corpora = {'corpus1': wrd_embedding_corpus1, 
-                                 'corpus2': wrd_embedding_corpus2}
-        tsne_embedding_corpora = gen_tsne_embedding(wrd_embedding_corpora)
+    def test_tsne_plotter(self):
 
-        assert (len(tsne_embedding_corpora) == len(wrd_embedding_corpora))
-        assert (tsne_embedding_corpora['corpus1'].shape == ((10, 2)))
-        assert (tsne_embedding_corpora['corpus2'].shape == ((20, 2)))
+        tsne_embedder = TSNEEmbedder(self.embedding_corpora_lst)
+        assert (tsne_embedder.master_tsne_embedding.shape == (17, 2))
+
+    def test_flatten_tsne_embeddings(self):
+        
+        tsne_embedder = TSNEEmbedder(self.embedding_corpora_lst)
+
+        assert (tsne_embedder.tsne_embedding_corpora['Test1'].shape == (2, 2))
+        assert (tsne_embedder.tsne_embedding_corpora['Test2'].shape == (5, 2))
+        assert (tsne_embedder.tsne_embedding_corpora['Test3'].shape == (10, 2))
