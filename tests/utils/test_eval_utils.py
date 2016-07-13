@@ -11,10 +11,10 @@ class TestEvalUtils:
         error = intellegently_guess(ratios)
         assert abs(error - 0.02 / 3) < eps 
 
-        ratios = np.array([[1], [0], [1]])
+        ratios = np.array([[0, 1], [1, 0], [0, 1], [0, 1]])
         # this technically returns accuracy
         error = intellegently_guess(ratios, classification=True)
-        assert abs(error -  0.666) < eps
+        assert abs(error -  0.75) < eps
 
         ratios = np.array([[0, 1], [1, 0], [0, 1]])
         error = intellegently_guess(ratios, classification=True)
