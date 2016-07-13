@@ -161,13 +161,17 @@ if __name__ == '__main__':
     print('Train needs to beat... {}'.format(train_guessing_error))
     print('Test needs to beat... {}'.format(test_guessing_error))
     logging_fp = 'work/{}/{}/{}_{}_{}_{}_'.format(metric, cell_type, optimizer, 
-                                               encoding_size, dropout, 
-                                               batch_norm_str)
+                                                  encoding_size, dropout, 
+                                                  batch_norm_str)
     keras_model = KerasSeq2NoSeq(input_length, cell_type=cell, 
                                  encoding_size=encoding_size, 
                                  loss=metric, optimizer=optimizer,
                                  dropout=dropout, batch_norm=batch_norm,
                                  embedding_weights=embedding_weights)
-    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=150,       
+    keras_model.fit(X_train, y_train, batch_size=32, nb_epoch=100,       
                     early_stopping_tol=5, logging=True, 
                     logging_fp=logging_fp, validation_data=(X_test, y_test))
+    weights_fp = 'work/weights/{}_{}_{}_{}_{}.h5'.format(metric, cell_type, 
+                                                         optimizer, encoding_size,
+                                                         dropout, batch_norm_str)
+    keras_model.model.save_weights(weights_fp, overwrite=True)

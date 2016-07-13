@@ -2,6 +2,8 @@ work/.folder_structure_sentinel:
 	mkdir -p data/reviews/amazon
 	mkdir data/word_embeddings
 	mkdir -p work/reviews/amazon
+	mkdir work/weights
+	mkdir work/viz
 
 	touch $@
 
