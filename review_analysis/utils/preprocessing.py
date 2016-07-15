@@ -20,7 +20,7 @@ def filter_by_length(reviews, ratios, maxlen):
     Output: 
     ------
         filtered_reviews: list of list of strings
-        filtered_ratios: 1d np.ndarray of floats 
+        filtered_ratios: list of floats 
     """
 
     filtered_reviews = []
@@ -47,7 +47,8 @@ def vectorize_txts(txts, wrd_idx_dct):
     
     vec_txts = []
     for review in txts: 
-        vec_words = [wrd_idx_dct.get(wrd, 0) for wrd in review]
+        # use a 2 to denote any uknown words (UNK symbol in dct)
+        vec_words = [wrd_idx_dct.get(wrd, 2) for wrd in review]
         vec_txts.append(vec_words)
 
     vec_txts = np.array(vec_txts)
@@ -116,6 +117,7 @@ if __name__ == '__main__':
                                               int(embed_dim))
     vectorized_reviews = vectorize_txts(reviews, wrd_idx_dct)
 
+    # save these to avoid recalculating them later (saves ~ a minute per run)
     wrd_idx_dct_fp = 'work/wrd_idx_dct.pkl'
     embedding_weights_fp = 'work/embedding_weights.npy'
     vectorized_reviews_fp = 'work/vec_reviews.npy' # For use with net models.

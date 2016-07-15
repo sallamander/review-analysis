@@ -6,11 +6,15 @@ import matplotlib.pyplot as plt
 class NetErrorPlotter(object): 
     """A class for plotting errors from neural network training.
 
+    This class takes in errors from one or multiple runs of a neural network, 
+    and plots them in a grid of subplots to allow for easy comparison and 
+    visualization. 
+
     Args:
     -----
         errors: list of tuples
             tuples each represent a model run and are expected to contain 
-            (str, 1d np.ndarray, bool) that represent (title, errors, training)
+            (str, 1d np.ndarray, bool) for (plot title, errors, training)
     """
 
     def __init__(self, errors): 
@@ -76,9 +80,8 @@ class NetErrorPlotter(object):
             mins.append(errors[skip:].min())
             maxes.append(errors[skip:].max())
 
-        self.ymin = 0
-
         ymax = np.max(maxes)
+        self.ymin = 0
         self.ymax = ymax + ymax * 0.10 # give the top of the plot a little room
 
     def _plot_subplot(self, ax, error_tup):
@@ -87,12 +90,11 @@ class NetErrorPlotter(object):
         Args:
         ----
             ax: matplotlib.pyplot.Axes object
-            error_tup: dict
-                holds `title` (str), `errors` (1d np.ndarray) pair
+            error_tup: tuple
+                holds `title` (str), `errors` (1d np.ndarray), training (boolean) pairs
         """
         
-        title = error_tup[0]
-        errors = error_tup[1]
+        title, errors, _ = error_tup
         
         ax.plot(errors)
         ax.set_ylim(self.ymin, self.ymax)
@@ -104,8 +106,11 @@ def gen_title(path):
     """Generate a title string from the inputted path.
 
     Each inputted string path is expected to take a specific format - any number
-    directories, followed by: 
+    of directories, followed by: 
     'CELL/<optimizer>_<encoding_size>_<dropout_pct>_<train/test>_<losses_accs>.txt'
+
+    Output a title string that is all of these parts, nicely formatted and 
+    separated by a '-'. 
 
     Args: 
     ----

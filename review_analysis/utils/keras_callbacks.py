@@ -35,7 +35,7 @@ class LossSaver(Callback):
             self.filepaths['val_accs'] = val_acc_fp
 
     def on_batch_end(self, batch, logs):
-        """Append the training loss to `train_losses`.
+        """Append the training loss/accuracy to `train_losses`.
 
         Args:
         ----
@@ -49,7 +49,7 @@ class LossSaver(Callback):
             self.metrics['train_accs'].append(logs['acc'])
 
     def on_epoch_end(self, epoch, logs): 
-        """Save the losses from the batches/epoch to the appropriate filepaths.
+        """Save the losses/accuracies to the appropriate filepaths.
 
         Args: 
         ----

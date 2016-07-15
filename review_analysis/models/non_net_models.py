@@ -1,7 +1,7 @@
 """A script for fitting non neural network models on text.
 
 These models will simply fit on a term-frequency, inverse-document frequency 
-matrix generated from the corpus.
+matrix generated from the corpus of inputted amazon food reviews. 
 """
 
 import sys

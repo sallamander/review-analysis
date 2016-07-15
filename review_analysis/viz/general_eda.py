@@ -100,8 +100,8 @@ if __name__ == '__main__':
         print('Ratio Variance: {}'.format(ratios.var()))
 
         xlabel = 'Helpfulness Ratio - Greater than {} Votes'.format(vote_frequency)
-        save_fp='work/temp_viz/ratio_boxplot_{}_votes.png'.format(vote_frequency)
+        save_fp='work/viz/ratio_boxplot_{}_votes.png'.format(vote_frequency)
         plot_boxplot(ratios, xlim=xlim, title=title, xlabel=xlabel, save_fp=save_fp)
-        save_fp='work/temp_viz/ratio_hist_{}_votes.png'.format(vote_frequency)
+        save_fp='work/viz/ratio_hist_{}_votes.png'.format(vote_frequency)
         plot_hist_kde(ratios, bins=50, kde=False, title=title, 
                 ylabel=ylabel, xlabel=xlabel, save_fp=save_fp, xlim=xlim)

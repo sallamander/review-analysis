@@ -58,8 +58,7 @@ work/embedding_weights.npy work/vec_reviews.npy: review_analysis/utils/preproces
 
 embedding reviews: work/embedding_weights.npy work/vec_reviews.npy
 
-data: folders data/reviews/amazon/food_reviews.txt \
-	work/reviews/amazon/raw_food_reviews.csv word_embeddings
+data: folders data/reviews/amazon/food_reviews.txt word_embeddings
 inputs: data ratios embedding reviews
 
 all: folders data inputs

@@ -18,7 +18,7 @@ from review_analysis.utils.preprocessing import filter_ratios
 from review_analysis.utils.data_io import return_data
 
 def filter_corpora(corpora, num_top_wrds, skip=0):
-    """Filter each inputted corpus into only `num_top_words` words.
+    """Filter each inputted corpus into only `num_top_words` after `skip` words.
 
     Args: 
     ----
@@ -87,7 +87,7 @@ class TSNEEmbedder(object):
 
     def __init__(self, wrd_embedding_corpora):
         self.wrd_embedding_corpora = wrd_embedding_corpora
-        self.emedding_dims = wrd_embedding_corpora[0][1].shape[1]
+        self.embedding_dims = wrd_embedding_corpora[0][1].shape[1]
         self.num_corpus = len(wrd_embedding_corpora)
 
         self.master_wrd_embedding = self._concat_wrd_embeddings()
@@ -97,15 +97,14 @@ class TSNEEmbedder(object):
     def _concat_wrd_embeddings(self): 
         """Concat all of the word embeddings in the corpus."""
 
-        embedding_dims = self.wrd_embedding_corpora[0][1].shape[1]
-        master_wrd_embedding = np.zeros((0, embedding_dims))
-        for name, embedding in self.wrd_embedding_corpora:
+        master_wrd_embedding = np.zeros((0, self.embedding_dims))
+        for _, embedding in self.wrd_embedding_corpora:
             master_wrd_embedding = np.concatenate([master_wrd_embedding, embedding])
 
         return master_wrd_embedding
     
     def _flatten_tsne_embeddings(self):
-        """Flatten `master_tsne_embedding`- map back to the original corpora."""
+        """Flatten `master_tsne_embedding` to map back to the original corpora."""
 
         tsne_embedding_corpora = {} 
         start_idx = 0
@@ -127,7 +126,7 @@ class TSNEPlotter(object):
         filtered_corpora: list of tuples
             (name (str), filtered corpus (list of words) pairs)
         pos_filters (optional): list 
-            parts of speech to also plot
+            parts of speech to plot
         save_dir (optional): str
     """
 
@@ -178,10 +177,8 @@ class TSNEPlotter(object):
             mins.append(embedding.min(0).tolist())
             maxes.append(embedding.max(0).tolist())
 
-        mins = np.array(mins)
-        maxes = np.array(maxes)
-        self.dim_mins = mins.min(0)
-        self.dim_maxes = maxes.max(0)
+        mins, maxes = np.array(mins), np.array(maxes)
+        self.dim_mins, self.dim_maxes = mins.min(0), maxes.max(0)
 
     def _set_legend(self):
         """Set up `self.legend_handles`."""
@@ -226,7 +223,7 @@ if __name__ == '__main__':
     middle_reviews = reviews_df.loc[middle_mask, 'text'].values
     helpful_reviews = reviews_df.loc[helpful_mask, 'text'].values
     
-    # Use a list of tuples instead of a dict. to ensure order, so each corpus
+    # Use a list of tuples for the corpora to ensure order, so each corpus
     # gets the same color label each time through the `tsne_plot` below.
     unhelpful_title = 'Unhelpful Reviews (0.0 - {})'.format(min_ratio)
     middle_title = 'Middle Reviews ({} - {})'.format(min_ratio, max_ratio) 
@@ -240,6 +237,7 @@ if __name__ == '__main__':
     tsne_embedder = TSNEEmbedder(wrd_embedding_corpora)
     tsne_embedding_corpora = tsne_embedder.tsne_embedding_corpora
     
+    # generate an appropriate title based on parameters passed in 
     if skip_wrds: 
         min_wrd_idx, max_wrd_idx = skip_wrds, skip_wrds + num_top_wrds
         top_wrds_title = '{} - {}'.format(min_wrd_idx, max_wrd_idx)

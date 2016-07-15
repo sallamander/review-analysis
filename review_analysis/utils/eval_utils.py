@@ -4,16 +4,16 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 
 def intellegently_guess(ratios, classification=False, pred=None): 
-    """Simulate the error from intellegently guessing (e.g. guessing the mean).
+    """Simulate error as if intellegently guessing (e.g. the mean/majority class).
 
-    Assume mean squared error.
+    Assume mean squared error if not the classification case. 
 
     Args: 
     ----
         ratios: 1d np.ndarray of floats
         classification (optional): bool
         pred (optional): float
-            mean to use as the prediction
+            mean to use as the prediction in a regression setting 
 
     Return: 
     ------
@@ -34,7 +34,7 @@ def intellegently_guess(ratios, classification=False, pred=None):
     return error
 
 class ConfusionMatrix(object): 
-    """A utility class for working with a confusion mat and associated stats."""
+    """A utility class for working with a confusion matrix and associated stats."""
 
     def fit(self, y_true, y_pred): 
         """Store the inputted obs. and generate a confusion matrix.
@@ -67,10 +67,10 @@ class ConfusionMatrix(object):
         """
 
         if not hasattr(self, 'confusion_mat'): 
-            raise RuntimeError("Must call `fit` method of Confucious first!")
+            raise RuntimeError("Must call `fit` method of ConfusionMatrix first!")
         
-        confusion_counts = {}
         if subsets: 
+            confusion_counts = {}
             for subset in subsets:
                 confusion_counts[subset] = self.confusion_dct[subset]
             return confusion_counts
@@ -82,7 +82,7 @@ class ConfusionMatrix(object):
 
         Args:
         ----
-            subsets(optional): list or other iteratble
+            subsets (optional): list or other iteratble
                 iterable of one or more of <true/false>_<positives/negatives>
 
         Return:
@@ -92,7 +92,7 @@ class ConfusionMatrix(object):
         """
             
         if not hasattr(self, 'confusion_mat'): 
-            raise RuntimeError("Must call `fit` method of Confucious first!")
+            raise RuntimeError("Must call `fit` method of ConfusionMatrix first!")
 
         correct_mask = (self.y_true == self.y_pred)
         incorrect_mask = (self.y_true != self.y_pred)

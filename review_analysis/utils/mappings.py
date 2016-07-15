@@ -65,13 +65,14 @@ def _filter_corpus(wrd_embedding, reviews, vocab_size):
 
     embedding_vocab = set(wrd_embedding.vocab.keys())
     if vocab_size: 
-        # Using a defaultdict is much faster than using Counters, and marginally 
+        # using a defaultdict is much faster than using Counters, and marginally 
         # faster than using raw dictionaries.
         review_wrd_counter = defaultdict(int)
         for review in reviews: 
             for wrd in review: 
                 review_wrd_counter[wrd] += 1 
-
+        
+        # use a counter here to get the built in `most_common` functionality
         master_counter = Counter({k:v for k, v in review_wrd_counter.items() \
                 if k in embedding_vocab})
         most_common = master_counter.most_common(vocab_size)

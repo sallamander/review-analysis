@@ -2,8 +2,9 @@
 
 import pickle
 import numpy as np
-import sys
 np.random.seed(609)
+import sys
+sys.setrecursionlimit(10000) # use to avoid errors when using dropout with RNNs
 from sklearn.cross_validation import train_test_split
 from keras.layers import Input
 from keras.layers.embeddings import Embedding
@@ -29,6 +30,8 @@ class KerasSeq2NoSeq(object):
         loss: str
         optimizer: str
         dropout (optional): float
+        batch_norm (optional): bool
+            apply batch normalization in between the encoding and ouput layer
         embedding_weights (optional): 2d np.ndarray
     """
 
@@ -50,15 +53,15 @@ class KerasSeq2NoSeq(object):
     def _build_model(self): 
         """Build the model according to specifications passed into the __init__"""
 
-        reviews = Input(shape=(input_length,), dtype='int32')
+        reviews = Input(shape=(self.input_length,), dtype='int32')
 
         # If embedding weights are passed in, run the input sequence through an
         # embedding layer, and otherwise straight into the recurrent encoder cell. 
-        if embedding_weights is not None:
-            vocab_size = embedding_weights.shape[0] 
-            embed_dim = embedding_weights.shape[1] 
+        if self.embedding_weights is not None:
+            vocab_size = self.embedding_weights.shape[0] 
+            embed_dim = self.embedding_weights.shape[1] 
             embeddings = Embedding(input_dim=vocab_size, output_dim=embed_dim, 
-                                   weights=[embedding_weights], 
+                                   weights=[self.embedding_weights], 
                                    dropout=self.dropout, mask_zero=True)(reviews)
             inputs = embeddings
         else: 
@@ -149,7 +152,7 @@ if __name__ == '__main__':
 
     if metric == "binary_crossentropy": 
         new_ys = np.zeros((len(ys), 2))
-        new_ys[:, 1] = ys > 0.50
+        new_ys[:, 1] = ys >= 0.50
         ys = new_ys
 
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.2, 
